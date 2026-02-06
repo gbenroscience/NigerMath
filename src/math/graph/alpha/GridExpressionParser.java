@@ -32,14 +32,14 @@ public class GridExpressionParser {
      */
     private boolean canPlot = true;
 
-    public GridExpressionParser(String input) {
+    public GridExpressionParser(String input, Grid.GraphDataSharer dataSharer) {
         this.input = input;
-        scan();
+        scan(dataSharer);
     }
 
-    public void setInput(String input) {
+    public void setInput(String input, Grid.GraphDataSharer dataSharer) {
         this.input = input;
-        scan();
+        scan(dataSharer);
     }
 
     public String getInput() {
@@ -93,8 +93,9 @@ public class GridExpressionParser {
 
     /**
      * Isolates each complete plottable instruction.
+     * @param dataSharer 
      */
-    public void scan() {
+    public void scan(Grid.GraphDataSharer dataSharer) {
         graphElements.clear();
 //[-200,200,300,-200:][1,3,-2,1:];y=@(x)3x+1;
         try {
@@ -105,7 +106,7 @@ public class GridExpressionParser {
                     String instructionToken = instructionTokens.get(i);
 
                     final GraphElement elem = new GraphElement(instructionToken, determineType(instructionToken));
-                    elem.fillCoords();
+                    elem.fillCoords(dataSharer.xLower, dataSharer.xUpper, dataSharer.xStep, dataSharer.yStep, dataSharer.drg);
                     graphElements.add(elem);
                 } catch (Exception nol) {
                     setCanPlot(false);

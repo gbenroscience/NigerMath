@@ -16,8 +16,7 @@ public class GraphElement {
 
     private String function;
     /**
-     * Store the function name to help with quick retrieval of the function
-     * later on.
+     * Store the f name to help with quick retrieval of the f later on.
      */
     private String functionName;
     double[] horizontalCoordinates = new double[0];
@@ -70,21 +69,15 @@ public class GraphElement {
         return verticalCoordinates;
     }
 
-    public void fillCoords() {
-
-        double xLower = Grid.dataSharer.xLower;
-        double xUpper = Grid.dataSharer.xUpper;
-        double xStep = Grid.dataSharer.xStep;
-        double yStep = Grid.dataSharer.yStep;
-        int drg = Grid.dataSharer.drg;
+    public void fillCoords(double xLower, double xUpper, double xStep, double yStep, int drg) {
 
         if (graphType.isFunctionPlot()) {
 
-            Function function = new Function(this.function);
-            this.functionName = function.getName();
-            FunctionManager.add(function);
-            String horVariableName = function.getIndependentVariables().get(0).getName();
-            double[][] values = function.evalRange(xLower, xUpper, xStep, horVariableName, drg);
+            Function f = new Function(this.function);
+            this.functionName = f.getName();
+            FunctionManager.add(f);
+            String horVariableName = f.getIndependentVariables().get(0).getName();
+            double[][] values = f.evalRange(xLower, xUpper, xStep, horVariableName, drg);
             this.verticalCoordinates = values[0];
             this.horizontalCoordinates = values[1];
 

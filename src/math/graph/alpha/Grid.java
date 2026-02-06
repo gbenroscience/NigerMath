@@ -176,6 +176,8 @@ public class Grid {
      */
     private volatile boolean updateHappenedDuringLock = false;
     private volatile boolean refreshingIndices = false;
+    
+    private volatile GraphDataSharer dataSharer = new GraphDataSharer();
 
     /**
      * @param function The function to be plotted on this Grid object. It may be
@@ -250,12 +252,10 @@ public class Grid {
 
         }
 
-    }
-
-    public static final GraphDataSharer dataSharer = new GraphDataSharer();
+    } 
 
     /**
-     * validates the xstep attribute. It checks if the number of iterations is
+     * validates the {@link Grid#xStep} attribute. It checks if the number of iterations is
      * not greater.
      */
     public void validateMaxIterations() {
@@ -273,23 +273,10 @@ public class Grid {
         return component;
     }
 
-
-    /*
-
-        public void setFunction(String function) {
-            this.function = purifier(function);
-            this.gridExpressionParser=new GridExpressionParser(function);
-            validateMaxIterations();
-            generateAutomaticScale();
-        }
-
-        public String getFunction() {
-            return function;
-        }
-     */
+ 
     public void setDRG(int DRG) {
-        this.DRG = DRG;
-        dataSharer.drg = DRG;
+        this.DRG = DRG; 
+        this.dataSharer.drg = this.DRG;
         setRefreshingIndices(true);
     }
 
@@ -509,7 +496,7 @@ public class Grid {
                             for (GraphElement gr : gridExpressionParser.getGraphElements()) {
                                 if (gr.getGraphType() == GraphType.FunctionPlot) {
                                     synchronized (gr) {
-                                        gr.fillCoords();
+                                        gr.fillCoords(Grid.this.lowerXLimit, Grid.this.upperXLimit, Grid.this.xStep, Grid.this.yStep, Grid.this.DRG);
                                     }
                                 }
                             }
@@ -564,7 +551,7 @@ public class Grid {
                         for (GraphElement gr : gridExpressionParser.getGraphElements()) {
                             if (gr.getGraphType() == GraphType.FunctionPlot) {
                                 synchronized (gr) {
-                                    gr.fillCoords();
+                                     gr.fillCoords(Grid.this.lowerXLimit, Grid.this.upperXLimit, Grid.this.xStep, Grid.this.yStep, Grid.this.DRG);
                                 }
                             }
 
@@ -581,7 +568,7 @@ public class Grid {
                         for (GraphElement gr : gridExpressionParser.getGraphElements()) {
                             if (gr.getGraphType() == GraphType.FunctionPlot) {
                                 synchronized (gr) {
-                                    gr.fillCoords();
+                                     gr.fillCoords(Grid.this.lowerXLimit, Grid.this.upperXLimit, Grid.this.xStep, Grid.this.yStep, Grid.this.DRG);
                                 }
                             }
 
@@ -616,14 +603,8 @@ public class Grid {
      * coordinate, not screen coordinates) of the left side of the graph
      */
     public void setLowerXLimit(double lowerXLimit) {
-        this.lowerXLimit = (abs(lowerXLimit) != Double.POSITIVE_INFINITY) ? lowerXLimit : -100;
-//lowerVisibleX = lowerXLimit+ (n-1)* xStep
-
-        /*   int n = (int) ((lowerVisibleX - lowerXLimit)/xStep + 1);
-        this.lowerXLimit = lowerVisibleX -(n-1)*xStep;
-         */
-        // validateMaxIterations();
-        dataSharer.xLower = lowerXLimit;
+        this.lowerXLimit = (abs(lowerXLimit) != Double.POSITIVE_INFINITY) ? lowerXLimit : -100; 
+        this.dataSharer.xLower = this.lowerXLimit;
         setRefreshingIndices(true);
     }
 
@@ -640,11 +621,7 @@ public class Grid {
      */
     public void setUpperXLimit(double upperXLimit) {
         this.upperXLimit = (abs(upperXLimit) != Double.POSITIVE_INFINITY) ? upperXLimit : 100;
-        /*  int n = (int) ((upperXLimit - lowerVisibleX)/xStep + 1);
-       this.upperXLimit = lowerVisibleX +(n+1)*xStep;
-         */
-        // validateMaxIterations();
-        dataSharer.xUpper = upperXLimit;
+        this.dataSharer.xUpper = this.upperXLimit;
         setRefreshingIndices(true);
     }
 
@@ -653,13 +630,13 @@ public class Grid {
     }
 
     public void setxStep(double xStep) {
-        this.xStep = Math.abs(xStep);
-        dataSharer.xStep = xStep;
+        this.xStep = Math.abs(xStep); 
+        this.dataSharer.xStep = this.xStep;
     }
 
     public void setyStep(double yStep) {
-        this.yStep = Math.abs(yStep);
-        dataSharer.yStep = yStep;
+        this.yStep = Math.abs(yStep); 
+        this.dataSharer.yStep = this.yStep;
     }
 
     public double getyStep() {
@@ -694,11 +671,11 @@ public class Grid {
     public void addFunction(String function) {
         try {
             if (gridExpressionParser != null) {
-                GridExpressionParser gep = new GridExpressionParser(function);
+                GridExpressionParser gep = new GridExpressionParser(function, dataSharer);
                 gridExpressionParser.addFunctions(gep);
             }//end if
             else {
-                gridExpressionParser = new GridExpressionParser(function);
+                gridExpressionParser = new GridExpressionParser(function, dataSharer);
             }//end else
         }//end try
         catch (NullPointerException exception) {
@@ -716,10 +693,10 @@ public class Grid {
     public void setFunction(String function) {
         try {
             if (gridExpressionParser != null) {
-                gridExpressionParser.setInput(function);
+                gridExpressionParser.setInput(function, dataSharer);
             }//end if
             else {
-                gridExpressionParser = new GridExpressionParser(function);
+                gridExpressionParser = new GridExpressionParser(function, dataSharer);
             }//end else
         }//end try
         catch (NullPointerException exception) {
@@ -743,7 +720,6 @@ public class Grid {
         int yLocOfTopSideOfComponent = (int) compLoc.y;
 
         g.setFont(font);
-        DrawAdapter art = new DrawAdapter();
         drawXAxes:
         {
             g.setColor(majorAxesColor);
