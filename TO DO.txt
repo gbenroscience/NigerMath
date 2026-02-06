@@ -1,0 +1,19 @@
+PARSER:
+
+1.Parser cannot resolve:
+
+sum(6!,3,4..):whereas it can resolve: sum(sin6,3,5,2+2...)
+
+
+2. Parser wrongly resolves
+
+   sum(6,5,A)...where A is a defined variable.
+
+ it interpretes it as 6+(5*A).
+
+3.Parser wrongly resolves sort(4,3,5,sin(3),cos2,ln5)
+It multiplies the number closest to an operator e.g 5 and sin3
+
+4.(0.5)(0.68+0.33) is syntax error, but (0.5*1)(0.68+0.33),
+(1/2)(0.68+0.33) e.t.c. are not
+

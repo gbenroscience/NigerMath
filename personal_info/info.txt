@@ -1,0 +1,3 @@
+biggest number whose factorial can be found by Nigermath is: 170.624376956302725716.
+The corresponding factorial which is the largest number that NigerMath can handle is:
+1.7976931348622588E308

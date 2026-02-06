@@ -1,0 +1,6 @@
+The en-dash symbol used as a minus for -ve numbers in mathronia
+
+–––––––––
+
+±....the plus or minus used to represent the
+plus in say 5E+3 in my project.
