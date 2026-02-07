@@ -10,12 +10,20 @@
  */
 package math.graph.gui;
 
+import com.github.gbenroscience.math.graph.GraphElement;
+import com.github.gbenroscience.math.graph.GridExpressionParser;
+import com.github.gbenroscience.math.graph.tools.GraphColor;
+import com.github.gbenroscience.math.graph.tools.GraphFont;
 import gui.FontChooser;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Point;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -34,10 +42,10 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
-import math.graph.alpha.GridExpressionParser;
+import math.graph.alpha.SwingDrawingContext;
 import math.graph.alpha.gui.GraphPanel;
-import math.graph.alpha.util.GraphElement;
 import utils.ImageUtilities;
 import utils.TableUtils;
 
@@ -60,10 +68,35 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     /**
      * Creates new form GraphProperties
+     *
+     * @param function
      */
     public FunctionTracer(String function) {
         super("TRACING OUT FUNCTIONS THE NAIJA WAY...");
         initComponents();
+        
+        
+        addHierarchyListener(new HierarchyListener() {
+            @Override
+            public void hierarchyChanged(HierarchyEvent e) {
+                // Check if the event is a HIERARCHY_CHANGED event
+                // and specifically a PARENT_CHANGED event
+                if ((e.getChangeFlags() & HierarchyEvent.PARENT_CHANGED) != 0) {
+                    Container parent = paper.getParent();
+                    // Check if the new parent is not null
+                    if (parent != null) {
+                        Dimension size = getParent().getPreferredSize();
+                        com.github.gbenroscience.math.Point locationOfOrigin = new com.github.gbenroscience.math.Point(size.width / 2, size.height / 2);
+                        paper.setLocationOfOrigin(locationOfOrigin); 
+                        paper.getGrid().setLocationOfOrigin(locationOfOrigin);
+                        repaint();
+                        parent.removeHierarchyListener(this);
+                    } else {
+                        System.out.println("Parent is null again (e.g., component was removed).");
+                    }
+                }
+            }
+        });
 
         saveChooser = new JFileChooser();
         saveChooser.setVisible(false);
@@ -108,10 +141,14 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
             @Override
             public void windowClosing(WindowEvent e) {
                 try {
-                    paper.getGrid().setFont(chooser.selectedFont());
+                    SwingDrawingContext sdc = paper.getContext();
+                    GraphFont f = sdc.getGraphFont(chooser.selectedFont());
+                    sdc.setFont(f);
+                    paper.getContext().setFont(f);
+                    paper.getGrid().setFont(f);
                     chooser.setVisible(false);
                 } catch (NullPointerException nolian) {
-
+                    nolian.printStackTrace();
                 }
             }
         });
@@ -133,8 +170,8 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         } catch (NullPointerException nol) {
 
         }
-
         timer.start();
+        pack();
     }//end constructor
 
     /**
@@ -162,7 +199,9 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
      * object. In essence, this is a notifier.
      */
     private void loadValuesToControllerFromProgram() {
-        chooser.setFontValue(paper.getGrid().getFont());
+        SwingDrawingContext sdc = paper.getContext();
+        Font f = sdc.getAWTFont(paper.getGrid().getFont());
+        chooser.setFontValue(f);
 
         degRadioButton.setSelected(paper.getGrid().getDRG() == 0);
         radRadioButton.setSelected(paper.getGrid().getDRG() == 1);
@@ -182,7 +221,6 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         horizontalScaleTextField.setText(String.valueOf(paper.getGrid().getxStep()));
         verticalScaleTextField.setText(String.valueOf(paper.getGrid().getyStep()));
 
-        
         gridSizeSpinner.setValue(paper.getGrid().getGridSize().width);
 
         showGridCheckBox.setSelected(paper.getGrid().isShowGridLines());
@@ -306,7 +344,10 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     public void setPanel(GraphPanel paper) {
         this.paper = paper;
-        chooser.setFontObject(paper.getGrid().getFont());
+
+        SwingDrawingContext sdc = paper.getContext();
+        Font f = sdc.getAWTFont(paper.getGrid().getFont());
+        chooser.setFontObject(f);
     }
 
     public GraphPanel getPaper() {
@@ -327,9 +368,10 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
      * regenerated by the Form Editor.
      */
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
     private void initComponents() {
 
+        paper = new math.graph.alpha.gui.GraphPanel();
         panel = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
@@ -375,7 +417,6 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         insertRowOnFunctionsTableButton = new javax.swing.JButton();
         saveGraphButton = new javax.swing.JButton();
         printButton = new javax.swing.JButton();
-        paper = new math.graph.alpha.gui.GraphPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setName("Form"); // NOI18N
@@ -421,34 +462,34 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap(26, Short.MAX_VALUE)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel6)
-                    .addComponent(jLabel5))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(minorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(majorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
+                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addContainerGap(26, Short.MAX_VALUE)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel6)
+                                        .addComponent(jLabel5))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(minorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(majorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap())
         );
 
-        jPanel2Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {majorTicksTextField, minorTicksTextField});
+        jPanel2Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[]{majorTicksTextField, minorTicksTextField});
 
         jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(majorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel6))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel5)
-                    .addComponent(minorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(majorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel6))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel5)
+                                        .addComponent(minorTicksTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
-        jPanel2Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {majorTicksTextField, minorTicksTextField});
+        jPanel2Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[]{majorTicksTextField, minorTicksTextField});
 
         jPanel3.setBackground(resourceMap.getColor("jPanel3.background")); // NOI18N
         jPanel3.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createCompoundBorder(null, javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED)), javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED)));
@@ -506,30 +547,30 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(autoScaleOnCheckBox)
-                    .addComponent(showGridCheckBox)
-                    .addComponent(calibrateAxesCheckBox))
-                .addContainerGap(109, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                .addComponent(gridSizeSpinner, javax.swing.GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jLabel9))
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(autoScaleOnCheckBox)
+                                        .addComponent(showGridCheckBox)
+                                        .addComponent(calibrateAxesCheckBox))
+                                .addContainerGap(109, Short.MAX_VALUE))
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                                .addComponent(gridSizeSpinner, javax.swing.GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jLabel9))
         );
         jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addComponent(autoScaleOnCheckBox, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(showGridCheckBox, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(calibrateAxesCheckBox, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(gridSizeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addComponent(autoScaleOnCheckBox, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(showGridCheckBox, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(calibrateAxesCheckBox, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(gridSizeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
         jPanel4.setBackground(resourceMap.getColor("jPanel4.background")); // NOI18N
@@ -595,46 +636,46 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel7)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 92, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(xLowerTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(horizontalScaleTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel8)
-                    .addComponent(jLabel4))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(verticalScaleTextField)
-                    .addComponent(xUpperTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel7)
+                                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 92, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(xLowerTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(horizontalScaleTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(10, 10, 10)
+                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel8)
+                                        .addComponent(jLabel4))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(verticalScaleTextField)
+                                        .addComponent(xUpperTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
-        jPanel4Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {horizontalScaleTextField, verticalScaleTextField, xLowerTextField, xUpperTextField});
+        jPanel4Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[]{horizontalScaleTextField, verticalScaleTextField, xLowerTextField, xUpperTextField});
 
         jPanel4Layout.setVerticalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGap(34, 34, 34)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel8)
-                    .addComponent(jLabel7)))
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGap(27, 27, 27)
-                .addComponent(horizontalScaleTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGap(27, 27, 27)
-                .addComponent(verticalScaleTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-            .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                .addComponent(xLowerTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE))
-            .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                .addComponent(xUpperTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(jLabel4))
+                jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addGap(34, 34, 34)
+                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel8)
+                                        .addComponent(jLabel7)))
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addGap(27, 27, 27)
+                                .addComponent(horizontalScaleTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addGap(27, 27, 27)
+                                .addComponent(verticalScaleTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(xLowerTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(xUpperTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jLabel4))
         );
 
         jPanel8.setBackground(resourceMap.getColor("jPanel8.background")); // NOI18N
@@ -678,24 +719,24 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
         jPanel8Layout.setHorizontalGroup(
-            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel8Layout.createSequentialGroup()
-                .addComponent(degRadioButton)
-                .addGap(0, 0, 0)
-                .addComponent(radRadioButton)
-                .addGap(0, 0, 0)
-                .addComponent(gradRadioButton)
-                .addContainerGap(9, Short.MAX_VALUE))
+                jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel8Layout.createSequentialGroup()
+                                .addComponent(degRadioButton)
+                                .addGap(0, 0, 0)
+                                .addComponent(radRadioButton)
+                                .addGap(0, 0, 0)
+                                .addComponent(gradRadioButton)
+                                .addContainerGap(9, Short.MAX_VALUE))
         );
 
-        jPanel8Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {degRadioButton, gradRadioButton, radRadioButton});
+        jPanel8Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[]{degRadioButton, gradRadioButton, radRadioButton});
 
         jPanel8Layout.setVerticalGroup(
-            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                .addComponent(degRadioButton, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(radRadioButton, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addComponent(gradRadioButton, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE))
+                jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(degRadioButton, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(radRadioButton, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(gradRadioButton, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         jPanel6.setBackground(resourceMap.getColor("jPanel6.background")); // NOI18N
@@ -735,27 +776,27 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
         jPanel6Layout.setHorizontalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel11)
-                    .addComponent(jLabel12))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(heightField)
-                    .addComponent(widthField, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel11)
+                                        .addComponent(jLabel12))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(heightField)
+                                        .addComponent(widthField, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
         jPanel6Layout.setVerticalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel11)
-                    .addComponent(widthField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(3, 3, 3)
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel12)
-                    .addComponent(heightField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel6Layout.createSequentialGroup()
+                                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel11)
+                                        .addComponent(widthField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(3, 3, 3)
+                                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel12)
+                                        .addComponent(heightField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
         graphFontButton.setBackground(resourceMap.getColor("graphFontButton.background")); // NOI18N
@@ -791,34 +832,34 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         colorCombo.setBackground(resourceMap.getColor("colorCombo.background")); // NOI18N
         colorCombo.setFont(resourceMap.getFont("colorCombo.font")); // NOI18N
         colorCombo.setForeground(resourceMap.getColor("colorCombo.foreground")); // NOI18N
-        colorCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        colorCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[]{"Item 1", "Item 2", "Item 3", "Item 4"}));
         colorCombo.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
         colorCombo.setName("colorCombo"); // NOI18N
 
         javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
         jPanel7.setLayout(jPanel7Layout);
         jPanel7Layout.setHorizontalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel7Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel7Layout.createSequentialGroup()
-                        .addGap(1, 1, 1)
-                        .addComponent(colorCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(51, 51, 51)
-                        .addComponent(colorButton)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 29, Short.MAX_VALUE))
-                    .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
-                .addContainerGap())
+                jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel7Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jPanel7Layout.createSequentialGroup()
+                                                .addGap(1, 1, 1)
+                                                .addComponent(colorCombo, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(51, 51, 51)
+                                                .addComponent(colorButton)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 29, Short.MAX_VALUE))
+                                        .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
+                                .addContainerGap())
         );
         jPanel7Layout.setVerticalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel7Layout.createSequentialGroup()
-                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(2, 2, 2)
-                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(colorCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(colorButton, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel7Layout.createSequentialGroup()
+                                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(2, 2, 2)
+                                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(colorCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(colorButton, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
         jPanel1.setBackground(resourceMap.getColor("jPanel1.background")); // NOI18N
@@ -831,51 +872,51 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         verticesTable.setBorder(new javax.swing.border.MatteBorder(null));
         verticesTable.setFont(resourceMap.getFont("verticesTable.font")); // NOI18N
         verticesTable.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null}
-            },
-            new String [] {
-                "INDEX", "xPoints", "yPoints"
-            }
+                new Object[][]{
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null},
+                    {null, null, null}
+                },
+                new String[]{
+                    "INDEX", "xPoints", "yPoints"
+                }
         ) {
-            Class[] types = new Class [] {
+            Class[] types = new Class[]{
                 java.lang.Integer.class, java.lang.String.class, java.lang.String.class
             };
-            boolean[] canEdit = new boolean [] {
+            boolean[] canEdit = new boolean[]{
                 true, true, false
             };
 
             public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
+                return types[columnIndex];
             }
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
+                return canEdit[columnIndex];
             }
         });
         verticesTable.setName("verticesTable"); // NOI18N
@@ -898,59 +939,59 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
         functionTable.setBorder(new javax.swing.border.MatteBorder(null));
         functionTable.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null}
-            },
-            new String [] {
-                "INDEX", "      FUNCTION"
-            }
+                new Object[][]{
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null},
+                    {null, null}
+                },
+                new String[]{
+                    "INDEX", "      FUNCTION"
+                }
         ) {
-            Class[] types = new Class [] {
+            Class[] types = new Class[]{
                 java.lang.Integer.class, java.lang.Object.class
             };
-            boolean[] canEdit = new boolean [] {
+            boolean[] canEdit = new boolean[]{
                 false, false
             };
 
             public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
+                return types[columnIndex];
             }
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
+                return canEdit[columnIndex];
             }
         });
         functionTable.setName("functionTable"); // NOI18N
@@ -998,38 +1039,38 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(2, 2, 2)
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 228, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(1, 1, 1)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 173, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(22, 22, 22)
-                        .addComponent(insertRowOnVerticesTableButton)
-                        .addGap(70, 70, 70)
-                        .addComponent(plotAllButton)
-                        .addGap(47, 47, 47)
-                        .addComponent(insertRowOnFunctionsTableButton)))
-                .addContainerGap())
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addGap(2, 2, 2)
+                                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 228, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(1, 1, 1)
+                                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 173, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addGap(22, 22, 22)
+                                                .addComponent(insertRowOnVerticesTableButton)
+                                                .addGap(70, 70, 70)
+                                                .addComponent(plotAllButton)
+                                                .addGap(47, 47, 47)
+                                                .addComponent(insertRowOnFunctionsTableButton)))
+                                .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jScrollPane1, 0, 0, Short.MAX_VALUE)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 195, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE, false)
-                    .addComponent(insertRowOnVerticesTableButton, javax.swing.GroupLayout.PREFERRED_SIZE, 11, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(insertRowOnFunctionsTableButton, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(plotAllButton, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                        .addComponent(jScrollPane1, 0, 0, Short.MAX_VALUE)
+                                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 195, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE, false)
+                                        .addComponent(insertRowOnVerticesTableButton, javax.swing.GroupLayout.PREFERRED_SIZE, 11, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(insertRowOnFunctionsTableButton, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(plotAllButton, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
 
-        jPanel1Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {insertRowOnFunctionsTableButton, insertRowOnVerticesTableButton, plotAllButton});
+        jPanel1Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[]{insertRowOnFunctionsTableButton, insertRowOnVerticesTableButton, plotAllButton});
 
         saveGraphButton.setBackground(resourceMap.getColor("saveGraphButton.background")); // NOI18N
         saveGraphButton.setFont(resourceMap.getFont("saveGraphButton.font")); // NOI18N
@@ -1054,85 +1095,94 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout panelLayout = new javax.swing.GroupLayout(panel);
         panel.setLayout(panelLayout);
         panelLayout.setHorizontalGroup(
-            panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(panelLayout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 439, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(panelLayout.createSequentialGroup()
-                        .addGap(10, 10, 10)
-                        .addComponent(saveGraphButton)
-                        .addGap(25, 25, 25)
-                        .addComponent(printButton)
-                        .addContainerGap())
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(panelLayout.createSequentialGroup()
-                            .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addContainerGap())
+                                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 439, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                            .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(100, 100, 100)))))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                        .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(158, 158, 158))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                        .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, panelLayout.createSequentialGroup()
-                                .addGap(115, 115, 115)
-                                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(81, 81, 81))
-                            .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(38, 38, 38))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(23, 23, 23))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
-                        .addComponent(graphFontButton)
-                        .addGap(143, 143, 143))))
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(panelLayout.createSequentialGroup()
+                                                .addGap(10, 10, 10)
+                                                .addComponent(saveGraphButton)
+                                                .addGap(25, 25, 25)
+                                                .addComponent(printButton)
+                                                .addContainerGap())
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(panelLayout.createSequentialGroup()
+                                                        .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addContainerGap())
+                                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
+                                                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addGap(100, 100, 100)))))
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
+                                                .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(158, 158, 158))
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
+                                                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, panelLayout.createSequentialGroup()
+                                                                .addGap(115, 115, 115)
+                                                                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addGap(81, 81, 81))
+                                                        .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addGap(38, 38, 38))
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
+                                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(23, 23, 23))
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
+                                                .addComponent(graphFontButton)
+                                                .addGap(143, 143, 143))))
         );
         panelLayout.setVerticalGroup(
-            panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(panelLayout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
-                .addGap(3, 3, 3)
-                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(graphFontButton, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(1, 1, 1)
-                .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(printButton, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(saveGraphButton, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(24, 24, 24))
+                panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(panelLayout.createSequentialGroup()
+                                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
+                                .addGap(3, 3, 3)
+                                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(graphFontButton, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(1, 1, 1)
+                                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(1, 1, 1)
+                                .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(printButton, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(saveGraphButton, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(24, 24, 24))
         );
+
+        Color gridCol = resourceMap.getColor("paper.gridColor");
+        GraphColor gc = new GraphColor(gridCol.getRed(), gridCol.getGreen(), gridCol.getBlue());
+        Color majAxesCol = resourceMap.getColor("paper.majorAxesColor");
+        GraphColor mc = new GraphColor(majAxesCol.getRed(), majAxesCol.getGreen(), majAxesCol.getBlue());
+        Color plotCol = resourceMap.getColor("paper.plotColor");
+        GraphColor pc = new GraphColor(plotCol.getRed(), plotCol.getGreen(), plotCol.getBlue());
+        Color tickCol = resourceMap.getColor("paper.tickColor");
+        GraphColor tc = new GraphColor(tickCol.getRed(), tickCol.getGreen(), tickCol.getBlue());
 
         paper.setBackground(resourceMap.getColor("paper.background")); // NOI18N
         paper.setFont(resourceMap.getFont("paper.font")); // NOI18N
         paper.setFunction(resourceMap.getString("paper.function")); // NOI18N
-        paper.setGridColor(resourceMap.getColor("paper.gridColor")); // NOI18N
+        paper.setGridColor(gc); // NOI18N
         paper.setGridSize(10);
         paper.setLabelAxis(true);
         paper.setLowerXLimit(-1000.0);
-        paper.setMajorAxesColor(resourceMap.getColor("paper.majorAxesColor")); // NOI18N
+        paper.setMajorAxesColor(mc); // NOI18N
         paper.setMajorTickLength(12);
         paper.setName("paper"); // NOI18N
-        paper.setPlotColor(resourceMap.getColor("paper.plotColor")); // NOI18N
+        paper.setPlotColor(pc); // NOI18N
         paper.setShowGridLines(true);
-        paper.setTickColor(resourceMap.getColor("paper.tickColor")); // NOI18N
+        paper.setTickColor(tc); // NOI18N
         paper.setUpperXLimit(1000.0);
         paper.setxStep(10.0);
         paper.setyStep(0.08);
@@ -1140,118 +1190,120 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         javax.swing.GroupLayout paperLayout = new javax.swing.GroupLayout(paper);
         paper.setLayout(paperLayout);
         paperLayout.setHorizontalGroup(
-            paperLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 799, Short.MAX_VALUE)
+                paperLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 799, Short.MAX_VALUE)
         );
         paperLayout.setVerticalGroup(
-            paperLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+                paperLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 0, Short.MAX_VALUE)
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(panel, javax.swing.GroupLayout.PREFERRED_SIZE, 448, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(paper, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addComponent(panel, javax.swing.GroupLayout.PREFERRED_SIZE, 448, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(paper, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(panel, javax.swing.GroupLayout.PREFERRED_SIZE, 733, Short.MAX_VALUE)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(paper, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(panel, javax.swing.GroupLayout.PREFERRED_SIZE, 733, Short.MAX_VALUE)
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(paper, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
-    }// </editor-fold>//GEN-END:initComponents
+    }// </editor-fold>                        
 
-    private void majorTicksTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_majorTicksTextFieldActionPerformed
+    private void majorTicksTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setMajorTickLength();
-}//GEN-LAST:event_majorTicksTextFieldActionPerformed
+    }
 
-    private void xLowerTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_xLowerTextFieldActionPerformed
+    private void xLowerTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setXLower();
-}//GEN-LAST:event_xLowerTextFieldActionPerformed
+    }
 
-    private void verticalScaleTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_verticalScaleTextFieldActionPerformed
+    private void verticalScaleTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setVerticalScale();
-}//GEN-LAST:event_verticalScaleTextFieldActionPerformed
+    }
 
-    private void horizontalScaleTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_horizontalScaleTextFieldActionPerformed
+    private void horizontalScaleTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setHorizontalScale();
-}//GEN-LAST:event_horizontalScaleTextFieldActionPerformed
+    }
 
-    private void graphFontButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_graphFontButtonActionPerformed
+    private void graphFontButtonActionPerformed(java.awt.event.ActionEvent evt) {
         chooser.setVisible(true);
-        chooser.setFontValue(paper.getGrid().getFont());
-    }//GEN-LAST:event_graphFontButtonActionPerformed
+        SwingDrawingContext sdc = paper.getContext();
+        Font f = sdc.getAWTFont(paper.getGrid().getFont());
+        chooser.setFontValue(f);
+    }
 
-    private void widthFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_widthFieldActionPerformed
+    private void widthFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setGraphWidth();
-    }//GEN-LAST:event_widthFieldActionPerformed
+    }
 
-    private void heightFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_heightFieldActionPerformed
+    private void heightFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setGraphHeight();
-    }//GEN-LAST:event_heightFieldActionPerformed
+    }
 
-    private void minorTicksTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_minorTicksTextFieldActionPerformed
+    private void minorTicksTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setMinorTickLength();
-    }//GEN-LAST:event_minorTicksTextFieldActionPerformed
+    }
 
-    private void calibrateAxesCheckBoxItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_calibrateAxesCheckBoxItemStateChanged
+    private void calibrateAxesCheckBoxItemStateChanged(java.awt.event.ItemEvent evt) {
         setLabelAxes();
-    }//GEN-LAST:event_calibrateAxesCheckBoxItemStateChanged
+    }
 
-    private void showGridCheckBoxItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_showGridCheckBoxItemStateChanged
+    private void showGridCheckBoxItemStateChanged(java.awt.event.ItemEvent evt) {
         setShowGridLines();
-    }//GEN-LAST:event_showGridCheckBoxItemStateChanged
+    }
 
-    private void gridSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_gridSizeSpinnerStateChanged
+    private void gridSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {
         setGridSize();
         setTextFontSize();
-    }//GEN-LAST:event_gridSizeSpinnerStateChanged
+    }
 
-    private void xUpperTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_xUpperTextFieldActionPerformed
+    private void xUpperTextFieldActionPerformed(java.awt.event.ActionEvent evt) {
         setXUpper();
-    }//GEN-LAST:event_xUpperTextFieldActionPerformed
+    }
 
-    private void colorButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_colorButtonActionPerformed
+    private void colorButtonActionPerformed(java.awt.event.ActionEvent evt) {
         color = JColorChooser.showDialog(this, "SET GRAPH COMPONENT COLOR", color);
-
+        GraphColor c = new GraphColor(color.getRed(), color.getGreen(), color.getBlue());
         if (colorCombo.getSelectedIndex() == 0) {
-            paper.getGrid().setTickColor(color);
+            paper.getGrid().setTickColor(c);
         } else if (colorCombo.getSelectedIndex() == 1) {
-            paper.getGrid().setMajorAxesColor(color);
+            paper.getGrid().setMajorAxesColor(c);
         } else if (colorCombo.getSelectedIndex() == 2) {
-            paper.getGrid().setGridColor(color);
+            paper.getGrid().setGridColor(c);
         } else if (colorCombo.getSelectedIndex() == 3) {
-            paper.getGrid().setPlotColor(color);
+            paper.getGrid().setPlotColor(c);
         } else if (colorCombo.getSelectedIndex() == 4) {
             paper.setBackground(color);
         }
 
-    }//GEN-LAST:event_colorButtonActionPerformed
+    }
 
-    private void autoScaleOnCheckBoxItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_autoScaleOnCheckBoxItemStateChanged
+    private void autoScaleOnCheckBoxItemStateChanged(java.awt.event.ItemEvent evt) {
         setAutoScaleOn();
-    }//GEN-LAST:event_autoScaleOnCheckBoxItemStateChanged
+    }
 
-    private void degRadioButtonItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_degRadioButtonItemStateChanged
+    private void degRadioButtonItemStateChanged(java.awt.event.ItemEvent evt) {
         setDRG();
-    }//GEN-LAST:event_degRadioButtonItemStateChanged
+    }
 
-    private void radRadioButtonItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_radRadioButtonItemStateChanged
+    private void radRadioButtonItemStateChanged(java.awt.event.ItemEvent evt) {
         setDRG();
-    }//GEN-LAST:event_radRadioButtonItemStateChanged
+    }
 
-    private void gradRadioButtonItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_gradRadioButtonItemStateChanged
+    private void gradRadioButtonItemStateChanged(java.awt.event.ItemEvent evt) {
         setDRG();
-    }//GEN-LAST:event_gradRadioButtonItemStateChanged
+    }
 
-    private void functionTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_functionTableMouseClicked
+    private void functionTableMouseClicked(java.awt.event.MouseEvent evt) {
         if (!evt.isMetaDown() && functionTable.getSelectedColumn() != 0) {
 
             final int row = functionTable.getSelectedRow();
@@ -1284,9 +1336,9 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
                 functionTable.setValueAt("", row, 1);
             }
         }
-    }//GEN-LAST:event_functionTableMouseClicked
+    }
 
-    private void verticesTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_verticesTableMouseClicked
+    private void verticesTableMouseClicked(java.awt.event.MouseEvent evt) {
         if (!evt.isMetaDown() && verticesTable.getSelectedColumn() != 0) {
 
             if (verticesTable.getSelectedColumn() == 1) {
@@ -1364,34 +1416,34 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
             }//end else if
         }
-    }//GEN-LAST:event_verticesTableMouseClicked
+    }
 
-    private void plotAllButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_plotAllButtonActionPerformed
+    private void plotAllButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (!busy) {
             busy = true;
             new Thread(new Runnable() {
                 @Override
-                public void run() { 
+                public void run() {
                     applySettings();
                     busy = false;
                 }
             }).start();
-        }else{
+        } else {
             JOptionPane.showMessageDialog(this, "A plot is in progress!", "Please wait!", JOptionPane.WARNING_MESSAGE);
         }
-    }//GEN-LAST:event_plotAllButtonActionPerformed
+    }
 
-    private void insertRowOnVerticesTableButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_insertRowOnVerticesTableButtonActionPerformed
+    private void insertRowOnVerticesTableButtonActionPerformed(java.awt.event.ActionEvent evt) {
         TableUtils.addRow();
         verticesTable.setValueAt(verticesTable.getRowCount(), verticesTable.getRowCount() - 1, 0);
-    }//GEN-LAST:event_insertRowOnVerticesTableButtonActionPerformed
+    }
 
-    private void insertRowOnFunctionsTableButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_insertRowOnFunctionsTableButtonActionPerformed
+    private void insertRowOnFunctionsTableButtonActionPerformed(java.awt.event.ActionEvent evt) {
         new TableUtils(functionTable).addRow();
         functionTable.setValueAt(functionTable.getRowCount(), functionTable.getRowCount() - 1, 0);
-    }//GEN-LAST:event_insertRowOnFunctionsTableButtonActionPerformed
+    }
 
-    private void saveGraphButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveGraphButtonActionPerformed
+    private void saveGraphButtonActionPerformed(java.awt.event.ActionEvent evt) {
 
         saveChooser.setVisible(true);
         int choice = saveChooser.showSaveDialog(this);
@@ -1414,9 +1466,9 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         else {
             JOptionPane.showMessageDialog(saveChooser, "Save Action Aborted");
         }
-    }//GEN-LAST:event_saveGraphButtonActionPerformed
+    }
 
-    private void printButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_printButtonActionPerformed
+    private void printButtonActionPerformed(java.awt.event.ActionEvent evt) {
 
         // Get a PrinterJob
         PrinterJob job = PrinterJob.getPrinterJob();
@@ -1437,16 +1489,15 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
                 /* Handle Exception */ }
         }
 
-
-    }//GEN-LAST:event_printButtonActionPerformed
+    }
 
     private void setHorizontalScale() {
         try {
-            double horizontal = Double.valueOf(horizontalScaleTextField.getText());
+            double horizontal = Double.parseDouble(horizontalScaleTextField.getText());
             paper.getGrid().setxStep(horizontal);
 
             if (!verticalScaleTextField.getText().isEmpty()) {
-                double vertical = Double.valueOf(verticalScaleTextField.getText());
+                double vertical = Double.parseDouble(verticalScaleTextField.getText());
                 paper.getGrid().setyStep(vertical);
             } else {
                 verticalScaleTextField.setText(String.valueOf(paper.getGrid().getyStep()));
@@ -1460,11 +1511,11 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setVerticalScale() {
         try {
-            double vertical = Double.valueOf(verticalScaleTextField.getText());
+            double vertical = Double.parseDouble(verticalScaleTextField.getText());
             paper.getGrid().setyStep(vertical);
 
             if (!horizontalScaleTextField.getText().isEmpty()) {
-                double horizontal = Double.valueOf(horizontalScaleTextField.getText());
+                double horizontal = Double.parseDouble(horizontalScaleTextField.getText());
                 paper.getGrid().setxStep(horizontal);
             }//end if
             else {
@@ -1479,11 +1530,11 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setGraphWidth() {
         try {
-            int width = Integer.valueOf(widthField.getText());
+            int width = Integer.parseInt(widthField.getText());
             paper.setSize((width <= 3000) ? width : 2000, paper.getHeight());
 
             if (!heightField.getText().isEmpty()) {
-                int height = Integer.valueOf(heightField.getText());
+                int height = Integer.parseInt(heightField.getText());
                 paper.setSize(paper.getWidth(), (height <= 3000) ? height : 2000);
             } else {
                 heightField.setText(String.valueOf(paper.getHeight()));
@@ -1495,10 +1546,10 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setGraphHeight() {
         try {
-            int height = Integer.valueOf(heightField.getText());
+            int height = Integer.parseInt(heightField.getText());
             paper.setSize(paper.getWidth(), (height <= 3000) ? height : 2000);
             if (!widthField.getText().isEmpty()) {
-                int width = Integer.valueOf(widthField.getText());
+                int width = Integer.parseInt(widthField.getText());
                 paper.setSize((width <= 3000) ? width : 2000, height);
             } else {
                 widthField.setText(String.valueOf(paper.getWidth()));
@@ -1511,7 +1562,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
     private boolean validateNumber(String number) {
         boolean isValid = true;
         try {
-            double num = Double.valueOf(number);
+            double num = Double.parseDouble(number);
             return true;
         } catch (NumberFormatException numErr) {
             JOptionPane.showMessageDialog(null, "PLEASE ENTER A VALID NUMBER", "BAD VALUE", JOptionPane.ERROR_MESSAGE);
@@ -1526,16 +1577,20 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setTextFontSize() {
         try {
-            Font font = paper.getGrid().getFont();
+
+            SwingDrawingContext sdc = paper.getContext();
+            Font font = sdc.getAWTFont(paper.getGrid().getFont());
 
             double size = font.getSize();
-            double next = Double.valueOf(gridSizeSpinner.getNextValue().toString());
+            double next = Double.parseDouble(gridSizeSpinner.getNextValue().toString());
             if (size > next) {
                 size--;
             } else {
                 size++;
             }
-            paper.getGrid().setFont(new Font(font.getFamily(), font.getStyle(), (int) size));
+            Font f = new Font(font.getFamily(), font.getStyle(), (int) size);
+            GraphFont gf = sdc.getGraphFont(f);
+            paper.getGrid().setFont(gf);
             chooser.setFont(font);
         }//end try
         catch (NullPointerException nolian) {
@@ -1545,11 +1600,11 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setMinorTickLength() {
         try {
-            int minor = Integer.valueOf(minorTicksTextField.getText());
+            int minor = Integer.parseInt(minorTicksTextField.getText());
             paper.getGrid().setMinorTickLength(minor);
 
             if (!majorTicksTextField.getText().isEmpty()) {
-                int major = Integer.valueOf(majorTicksTextField.getText());
+                int major = Integer.parseInt(majorTicksTextField.getText());
                 paper.getGrid().setMajorTickLength(major);
             } else {
                 majorTicksTextField.setText(String.valueOf(paper.getGrid().getMajorTickLength()));
@@ -1564,11 +1619,11 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
     private void setMajorTickLength() {
 
         try {
-            int major = Integer.valueOf(majorTicksTextField.getText());
+            int major = Integer.parseInt(majorTicksTextField.getText());
             paper.getGrid().setMajorTickLength(major);
 
             if (!minorTicksTextField.getText().isEmpty()) {
-                int minor = Integer.valueOf(minorTicksTextField.getText());
+                int minor = Integer.parseInt(minorTicksTextField.getText());
                 paper.getGrid().setMinorTickLength(minor);
             } else {
                 minorTicksTextField.setText(String.valueOf(paper.getGrid().getMinorTickLength()));
@@ -1581,11 +1636,11 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setXUpper() {
         try {
-            double xUpper = Double.valueOf(xUpperTextField.getText());
+            double xUpper = Double.parseDouble(xUpperTextField.getText());
             paper.getGrid().setUpperXLimit(xUpper);
 
             if (!xLowerTextField.getText().isEmpty()) {
-                double xLower = Double.valueOf(xLowerTextField.getText());
+                double xLower = Double.parseDouble(xLowerTextField.getText());
                 paper.getGrid().setLowerXLimit(xLower);
             } else {
                 xLowerTextField.setText(String.valueOf(paper.getGrid().getLowerXLimit()));
@@ -1600,11 +1655,11 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
     private void setXLower() {
         try {
-            double xLower = Double.valueOf(xLowerTextField.getText());
+            double xLower = Double.parseDouble(xLowerTextField.getText());
             paper.getGrid().setLowerXLimit(xLower);
 
             if (!xUpperTextField.getText().isEmpty()) {
-                double xUpper = Double.valueOf(xUpperTextField.getText());
+                double xUpper = Double.parseDouble(xUpperTextField.getText());
                 paper.getGrid().setUpperXLimit(xUpper);
             }//end if
             else {
@@ -1662,8 +1717,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         props.setVisible(true);
     }
 
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    // Variables declaration - do not modify                     
     private javax.swing.JCheckBox autoScaleOnCheckBox;
     private javax.swing.JCheckBox calibrateAxesCheckBox;
     private javax.swing.JButton colorButton;
@@ -1710,6 +1764,6 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
     private javax.swing.JTextField widthField;
     private javax.swing.JTextField xLowerTextField;
     private javax.swing.JTextField xUpperTextField;
-    // End of variables declaration//GEN-END:variables
+    // End of variables declaration                   
 
 }

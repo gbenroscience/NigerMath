@@ -8,8 +8,6 @@ package math.graph.alpha.gui;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -19,7 +17,17 @@ import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import javax.swing.Timer;
 import com.github.gbenroscience.math.Point;
-import math.graph.alpha.Grid;
+import com.github.gbenroscience.math.graph.DrawingContext;
+import com.github.gbenroscience.math.graph.Grid;
+import com.github.gbenroscience.math.graph.tools.FontStyle;
+import com.github.gbenroscience.math.graph.tools.GraphColor;
+import com.github.gbenroscience.math.graph.tools.GraphFont;
+import java.awt.Container;
+import java.awt.Graphics;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
+import javax.swing.JPanel;
+import math.graph.alpha.SwingDrawingContext;
 import util.imageprocessor.ImageUtilities;
 
 /**
@@ -42,45 +50,38 @@ public class GraphPanel extends javax.swing.JPanel implements Printable {
     private int gridSize = 8;
     private boolean showGridLines = true;
     private boolean labelAxis = true;
-    private Color gridColor = Color.gray;
-    private Color majorAxesColor = Color.orange;
-    private Color tickColor = Color.pink;
-    private Color plotColor = Color.black;
+    private GraphColor gridColor = GraphColor.gray;
+    private GraphColor majorAxesColor = GraphColor.orange;
+    private GraphColor tickColor = GraphColor.pink;
+    private GraphColor plotColor = GraphColor.black;
     private int majorTickLength = 8;
     private int minorTickLength = 4;
     private double lowerXLimit = -200;
     private double upperXLimit = 200;
     private double xStep = 0.1;
     private double yStep = 0.1;
-    private Font font = new Font("Times New Roman", Font.BOLD, 14);
+    private GraphFont font = new GraphFont("Times New Roman", FontStyle.BOLD, 14);
     private Point locationOfOrigin = new Point();
+    private SwingDrawingContext context;
 
     /**
      * Creates new form GraphPanel
      */
     public GraphPanel() {
+        super(); 
+        initComponents();
+        context = new SwingDrawingContext((Graphics2D) getGraphics());
         grid = new Grid(function, showGridLines, labelAxis, gridSize, gridColor, majorAxesColor, tickColor, plotColor, majorTickLength,
                 minorTickLength, lowerXLimit, upperXLimit, xStep, yStep, font, this);
-
-        Timer t = new Timer(1500, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Dimension size = getParent().getPreferredSize();
-                locationOfOrigin = new Point(size.width / 2, size.height / 2);
-                grid.setLocationOfOrigin(locationOfOrigin);
-                repaint();
-            }
-        });
-        t.setRepeats(false);
-        t.start();
-
-        initComponents();
-
+        
     }
-    
-    
-    private String doubleXYToString(double[] xy){
-        return "[x,y] = ["+xy[0]+","+xy[1]+"]";
+
+    private String doubleXYToString(double[] xy) {
+        return "[x,y] = [" + xy[0] + "," + xy[1] + "]";
+    }
+
+    public SwingDrawingContext getContext() {
+        return context;
     }
 
     /**
@@ -133,7 +134,7 @@ public class GraphPanel extends javax.swing.JPanel implements Printable {
 
     private void formMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseMoved
         try {
-            setToolTipText(doubleXYToString(grid.convertScreenPointToGraphCoords(evt.getX(), evt.getY()))); 
+            setToolTipText(doubleXYToString(grid.convertScreenPointToGraphCoords(evt.getX(), evt.getY())));
         }//end try
         catch (NullPointerException nolian) {
         }
@@ -142,7 +143,7 @@ public class GraphPanel extends javax.swing.JPanel implements Printable {
     private void formMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseReleased
         java.awt.Point evtLoc = evt.getPoint();
         startCoords.x = evtLoc.x;
-        startCoords.y = evtLoc.y; 
+        startCoords.y = evtLoc.y;
     }//GEN-LAST:event_formMouseReleased
 
     private void formMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseDragged
@@ -153,18 +154,23 @@ public class GraphPanel extends javax.swing.JPanel implements Printable {
         grid.setLocationOfOrigin(new Point(p.x + shiftCoords.width, p.y + shiftCoords.height));
         startCoords.x = evtLoc.x;
         startCoords.y = evtLoc.y;
-        repaint(); 
+        repaint();
     }//GEN-LAST:event_formMouseDragged
 
     private void formMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseEntered
         Cursor cursor = new Cursor(Cursor.HAND_CURSOR);
         setCursor(cursor);
     }//GEN-LAST:event_formMouseEntered
+    boolean reloadGraphics;
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g); //To change body of generated methods, choose Tools | Templates.
-        grid.draw(g);
+        if (context!=null || !reloadGraphics) {
+            context = new SwingDrawingContext((Graphics2D) g);
+            reloadGraphics = true;
+        }
+        grid.draw(context);
     }
 
     public void setGrid(Grid grid) {
@@ -196,25 +202,25 @@ public class GraphPanel extends javax.swing.JPanel implements Printable {
         repaint();
     }
 
-    public void setGridColor(Color gridColor) {
+    public void setGridColor(GraphColor gridColor) {
         this.gridColor = gridColor;
         grid.setGridColor(gridColor);
         repaint();
     }
 
-    public void setMajorAxesColor(Color majorAxesColor) {
+    public void setMajorAxesColor(GraphColor majorAxesColor) {
         this.majorAxesColor = majorAxesColor;
         grid.setMajorAxesColor(majorAxesColor);
         repaint();
     }
 
-    public void setTickColor(Color tickColor) {
+    public void setTickColor(GraphColor tickColor) {
         this.tickColor = tickColor;
         grid.setTickColor(tickColor);
         repaint();
     }
 
-    public void setPlotColor(Color plotColor) {
+    public void setPlotColor(GraphColor plotColor) {
         this.plotColor = plotColor;
         grid.setPlotColor(plotColor);
         repaint();
@@ -273,20 +279,18 @@ public class GraphPanel extends javax.swing.JPanel implements Printable {
     }
 
     @Override
-    public void setFont(Font font) {
+    public void setFont(java.awt.Font font) {
         super.setFont(font);
-        this.font = font;
+        if (context != null) {
+            this.font = context.getGraphFont(font);
+        }
 
-        Timer t = new Timer(200, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                grid.setFont(font);
-                repaint();
-            }
+        Timer t = new Timer(200, (ActionEvent e) -> {
+            grid.setFont(GraphPanel.this.font);
+            repaint();
         });
         t.setRepeats(false);
         t.start();
-
     }
 
     // Variables declaration - do not modify                     

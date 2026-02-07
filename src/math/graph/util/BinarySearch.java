@@ -15,6 +15,8 @@ import java.util.Random;
 public class BinarySearch {
 
     private static double horizontalCoordinates[];
+    private static int countLinearSteap = 0;
+    private static int countBinarySteps = 0;
 
     public static int binarySearch(double searchValue) {
 //3.1,3.21,4.13,4.4,5.0,5.2,5.21,5.32,6.0,6.01
@@ -22,6 +24,7 @@ public class BinarySearch {
         int startLen = horizontalCoordinates.length;
         int indexShift = 0;
         while (notFound) {
+            countBinarySteps++;
             int midIndex = indexShift + startLen / 2;
 
             if (midIndex >= horizontalCoordinates.length - 1) {
@@ -58,6 +61,7 @@ public class BinarySearch {
     public static int linearSearch(double searchValue) {
         int i = 0;
         for (double d : horizontalCoordinates) {
+            countLinearSteap++;
             if (d >= searchValue) {
                 return i;
             }
@@ -67,7 +71,7 @@ public class BinarySearch {
     }
 
     public static void main(String[] args) {
-        int ITEMS = 43000000;
+        int ITEMS = 430000000;
         Random choice = new Random();
         horizontalCoordinates = new double[ITEMS];
         for (int i = 0; i < ITEMS; i++) {
@@ -83,7 +87,7 @@ public class BinarySearch {
         int index = binarySearch(searchItem);
         double duration = System.nanoTime() - start;
 
-        System.err.println("Search ends in " + (duration / 1.0E6) + " ms\n ");
+        System.err.println("Search ends in " + (duration / 1.0E6) + " ms\n Step Count For Binary Search: "+countBinarySteps);
 
         System.out.println("SearchItem: " + searchItem + "\n\n\nSee index at : " + index + " \nelem to left of index is " + horizontalCoordinates[index - 1]
                 + " \nelem to right of index is " + horizontalCoordinates[index]);
@@ -95,7 +99,7 @@ public class BinarySearch {
         index = linearSearch(searchItem);
         duration = System.nanoTime() - start;
 
-        System.err.println("Search ends in " + (duration / 1.0E6) + " ms\n ");
+        System.err.println("Search ends in " + (duration / 1.0E6) + " ms\n Step Count For Linear Search: "+countLinearSteap);
 
         System.out.println("SearchItem: " + searchItem + "\n\n\nSee index at : " + index + " \nelem to left of index is " + horizontalCoordinates[index - 1]
                 + " \nelem to right of index is " + horizontalCoordinates[index]);

@@ -3,11 +3,9 @@ package math.graph.alpha.util;
 import java.util.List;
 
 import com.github.gbenroscience.parser.*;
-import math.graph.alpha.GraphType;
-import math.graph.alpha.Grid;
+import math.graph.alpha.GraphType; 
 import utils.FunctionManager;
-
-import static java.lang.Math.abs;
+ 
 
 /**
  * Created by JIBOYE Oluwagbemiro Olaoluwa on 6/28/2016.

@@ -95,7 +95,7 @@ public class GridExpressionParser {
      * Isolates each complete plottable instruction.
      * @param dataSharer 
      */
-    public void scan(Grid.GraphDataSharer dataSharer) {
+    public final void scan(Grid.GraphDataSharer dataSharer) {
         graphElements.clear();
 //[-200,200,300,-200:][1,3,-2,1:];y=@(x)3x+1;
         try {

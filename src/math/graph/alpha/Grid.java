@@ -185,11 +185,13 @@ public class Grid {
      * is entered as y=f(x)..while the geometric one is entered in the form:
      * [2,3,4,5]:[-90,3,15,9]
      * @param showGridLines sets whether the grid lines will be visible or not.
+     * @param labelAxis 
      * @param gridSize determine the size of the small boxes that make up the
      * grid.
      * @param gridColor The color of the grid.
      * @param tickColor The color of the ticks used to mark off the coordinate
      * axes.
+     * @param plotColor 
      * @param majorTickLength The length of the longer ticks used to mark off
      * the graph.
      * @param minorTickLength The length of the shorter ticks used to mark off
@@ -200,6 +202,8 @@ public class Grid {
      * @param lowerXLimit The lower value of x up to which the graph will be
      * plotted.
      * @param xStep The resolution of the graph along x.
+     * @param yStep 
+     * @param font 
      * @param component The component on which this grid will be laid.
      */
     public Grid(String function, boolean showGridLines, boolean labelAxis,
@@ -414,7 +418,7 @@ public class Grid {
         return majorTickLength;
     }
 
-    public void setMajorTickLength(int majorTickLength) {
+    public final void setMajorTickLength(int majorTickLength) {
         this.majorTickLength = majorTickLength;
     }
 
@@ -422,7 +426,7 @@ public class Grid {
         return minorTickLength;
     }
 
-    public void setMinorTickLength(int minorTickLength) {
+    public final void setMinorTickLength(int minorTickLength) {
         this.minorTickLength = (minorTickLength < (majorTickLength / 2.0)) ? minorTickLength : majorTickLength / 2;
     }
 
@@ -430,7 +434,7 @@ public class Grid {
         return lowerXLimit;
     }
 
-    public synchronized void setRefreshingIndices(boolean refreshingIndices) {
+    public final synchronized void setRefreshingIndices(boolean refreshingIndices) {
         this.refreshingIndices = refreshingIndices;
         /**
          * Only the replot function can set the refreshingIndices field to
@@ -1108,10 +1112,9 @@ public class Grid {
 
     /**
      * *
-     *
-     * @return the math x coordinate of the leftmost part of the screen
+     * 
      */
-    public void computeXMinBoundPossibleOnScreen() {
+    public final void computeXMinBoundPossibleOnScreen() {
         /*  int width = component.getWidth();
         int gridWidth = gridSize.width;
         int originX = locationOfOrigin.getX();
@@ -1124,10 +1127,9 @@ public class Grid {
     }
 
     /**
-     *
-     * @return the math x coordinate of the rightmost part of the screen.
+     * 
      */
-    public void computeXMaxBoundPossibleOnScreen() {
+    public final void computeXMaxBoundPossibleOnScreen() {
         /* int width = component.getWidth();
         int gridWidth = gridSize.width;
         int originX = locationOfOrigin.getX();
@@ -1140,12 +1142,10 @@ public class Grid {
         this.upperVisibleX = convertScreenPointToGraphCoords(component.getWidth(), 0)[0];
     }
 
-    /**
-     * *
-     *
-     * @return the math y coordinate of the leftmost part of the screen
+    /** 
+     * 
      */
-    public void computeYMinBoundPossibleOnScreen() {
+    public final void computeYMinBoundPossibleOnScreen() {
         /*   int width = component.getHeight();
         int gridHeight = gridSize.height;
         int originX = locationOfOrigin.getY();
@@ -1156,10 +1156,9 @@ public class Grid {
     }
 
     /**
-     *
-     * @return the math y coordinate of the rightmost part of the screen.
+     * 
      */
-    public void computeYMaxBoundPossibleOnScreen() {
+    public final void computeYMaxBoundPossibleOnScreen() {
         /* int width = component.getHeight();
         int gridHeight = gridSize.height;
         int originX = locationOfOrigin.getY();
