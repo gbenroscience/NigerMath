@@ -19,6 +19,7 @@ import javax.swing.JOptionPane;
  */
 public class Caret {
 
+    private final Document document;
     /**
      * tracks when the enter key is pressed.
      */
@@ -53,17 +54,17 @@ public class Caret {
      */
     private boolean visible;
 
-
     private CaretState state;
 
-    public Caret() {
+    public Caret(Document document) {
+        this.document = document;
         this.color = Color.blue;
-        this.blinkRate = 500;
+        this.blinkRate = 100;
         this.visible = true;
         this.row = 0;
         this.column = 0;
         this.state = CaretState.INITIAL_TYPING;
-        
+
     }
 
     /**
@@ -71,10 +72,10 @@ public class Caret {
      * @param document
      * @param g The Graphics object used to draw.
      */
-    public void draw(Document document, Graphics g) {
+    public void draw(Graphics g) {
         if (isVisible()) {
-            g.setColor(color); 
-            Point location = getLocation(document);
+            g.setColor(color);
+            Point location = getLocation();
             drawCaret:
             {
                 Rectangle r = new Rectangle(location.x, location.y, 14, 4);
@@ -83,8 +84,6 @@ public class Caret {
 
         }//end if
     }//end method draw
-
-     
 
     /**
      *
@@ -131,13 +130,12 @@ public class Caret {
     }
 
     /**
-     *
-     * @param d
+     * 
      * @param row The row that the position will lie on.
      * @param col The column that the position will lie on.
      */
-    public void setPosition(Document d, int row, int col) {
-        int row$Col[] = d.normalizePosition(row, col);
+    public void setPosition(int row, int col) {
+        int row$Col[] = document.normalizePosition(row, col);
         setRow(row$Col[0]);
         setColumn(row$Col[1]);
     }
@@ -145,13 +143,13 @@ public class Caret {
     /**
      * Sets the row and the column of this Caret object using a knowledge of the
      * index that we wish to move it to in the parent Document object's text.
-     * @param d 
+     *
      * @param index The index of the position in the parent Document object's
      * text.
      */
-    public void setPosition(Document d, int index) {
-        int[] row$Col = d.indexToRow$Column(index);
-        setPosition(d, row$Col[0], row$Col[1]);
+    public void setPosition(int index) {
+        int[] row$Col = document.indexToRow$Column(index);
+        setPosition(row$Col[0], row$Col[1]);
     }
 
     public CaretState getState() {
@@ -175,17 +173,16 @@ public class Caret {
      * @return the Point object that represents the current location that
      * corresponds to the row and column attributes.
      */
-    public Point getLocation(Document d) {
-        return d.convertRow$ColumnToPoint(row, column);
+    public Point getLocation() {
+        return document.convertRow$ColumnToPoint(row, column);
     }
 
     /**
      *
-     * @param document
      * @return The character at the point where the caret currently is.
      */
-    public String getChar(Document document) {
-        int index = getIndex(document);
+    public String getChar() {
+        int index = getIndex();
         return document.getText().substring(index, index + 1);
     }
 
@@ -194,9 +191,9 @@ public class Caret {
      * @return The character at any Point p in the parent Document of this
      * Caret.
      */
-    public String getCharAt(Document document, Point p) {
-        int row$Col[] =  convertLocationToRow$Column(document, p);
-        return document.getScanner().get(row$Col[0]).substring(row$Col[1], row$Col[1] + 1);
+    public char getCharAt(Point p) {
+        int row$Col[] = convertLocationToRow$Column(p);
+        return document.getScanner().get(row$Col[0]).charAt(row$Col[1]);
     }
 
     /**
@@ -204,24 +201,26 @@ public class Caret {
      * @return The character at the specified index in the text of the parent
      * Document of this Caret.
      */
-    public String getCharAt(Document document, int index) {
-        return document.getText().substring(index, index + 1);
+    public char getCharAt(int index) {
+        return document.getText().charAt(index);
     }
 
     /**
-     * @param index The index of the character in the parent Document's text.
+     * @param row The row of the character in the parent Document's text.
+     * @param column The column the character occupies in the parent Document's
+     * text
      * @return The character at the given row and column in the parent Document
      * of this Caret.
      */
-    public String getCharAt(Document document, int row, int column) {
-        return document.getScanner().get(row).substring(column, column + 1);
+    public char getCharAt(int row, int column) {
+        return document.getScanner().get(row).charAt(column);
     }
 
     /**
      *
      * @param p The Point object to convert to row and column values.
      */
-    public int[] convertLocationToRow$Column(Document document, Point p) {
+    public int[] convertLocationToRow$Column(Point p) {
         String text = document.getText();
         int len = text.length();
 
@@ -327,11 +326,6 @@ public class Caret {
         this.blinkRate = blinkRate;
     }
 
-   
-
-
-    
-
     /**
      *
      * @return an int array containing two int values. In the first index is the
@@ -351,9 +345,10 @@ public class Caret {
     /**
      * A simple number denoting the index of the character in the Document
      * object that this Caret object is on.
+     *
      * @param document
      */
-    public int getIndex(Document document) {
+    public int getIndex() {
         if (document.getText().isEmpty()) {
             return -1;
         }//end if
@@ -363,7 +358,7 @@ public class Caret {
         }//en//end else
     }//end method
 
-    public int numOfItemsOnRow(Document document, int row) {
+    public int numOfItemsOnRow(int row) {
         return document.getScanner().get(row).length();
     }
 
@@ -374,7 +369,7 @@ public class Caret {
      * @return a character string consisting of all characters found between
      * start and end-1 in the document object.
      */
-    public String copyData(Document document, int start, int end) {
+    public String copyData(int start, int end) {
         return document.getText().substring(start, end);
     }
 
@@ -385,23 +380,21 @@ public class Caret {
      * @return a character string consisting of all characters found between
      * start and end-1 in the document object.
      */
-    public String copyData(Document document, int start) {
-        return document.getText().substring(start, getIndex(document));
+    public String copyData(int start) {
+        return document.getText().substring(start, getIndex());
     }//end method
-
- 
 
     /**
      *
      * This method assumes that a row exists above the Caret object that it can
      * jump to.
      *
-     * @param line Jumps to the line above. If the point exactly above this
-     * Caret object is a valid Point on the line above it, it occupies that
-     * Point, else it jumps to the closest Point object to it on the line.
+     * Jumps to the line above. If the point exactly above this Caret object is
+     * a valid Point on the line above it, it occupies that Point, else it jumps
+     * to the closest Point object to it on the line.
      */
-    public void moveUp(Document document) {
-        setPosition(document, row - 1, column);
+    public void moveUp() {
+        setPosition(row - 1, column);
     }//end method
 
     /**
@@ -410,20 +403,20 @@ public class Caret {
      *
      * @param col The column to jump to on the row above the current one.
      */
-    public void moveUp(Document document, int col) {
-        setPosition(document, row - 1, col);
+    public void moveUp(int col) {
+        setPosition(row - 1, col);
     }//end method
 
     /**
      * This method assumes that a row exists beneath the Caret object that it
      * can jump to.
      *
-     * @param line Jumps to the line below. If the point exactly below this
-     * Caret object is a valid Point on the line below it, it occupies that
-     * Point, else it jumps to the closest Point object to it on the line.
+     * Jumps to the line below. If the point exactly below this Caret object is
+     * a valid Point on the line below it, it occupies that Point, else it jumps
+     * to the closest Point object to it on the line.
      */
-    public void moveDown(Document document ) {
-        setPosition(document, row + 1, 0);
+    public void moveDown() {
+        setPosition(row + 1, 0);
     }//end method
 
     /**
@@ -432,77 +425,75 @@ public class Caret {
      *
      * @param col The column to jump to on the row below the current one
      */
-    public void moveDown(Document document, int col) {
-        setPosition(document, row + 1, col);
+    public void moveDown(int col) {
+        setPosition(row + 1, col);
     }
 
     /**
      * Jumps to the top of the page.
      */
-    public void gotoTopOfPage(Document document) {
-        setPosition(document, 0, 0);
+    public void gotoTopOfPage() {
+        setPosition(0, 0);
     }
 
     /**
      * Jumps to the bottom of the page.
      */
-    public void gotoBottomOfPage(Document document) {
+    public void gotoBottomOfPage() {
         ArrayList<String> scan = document.getScanner();
         int lastRow = scan.size() - 1;
         int lastCol = scan.get(lastRow).length() - 1;
-        setPosition(document, lastRow, lastCol);
+        setPosition(lastRow, lastCol);
     }
 
     /**
      *
      *
-     * @param line Moves this object backwards by a step on the parent Document
-     * object.
+     * Moves this object backwards by a step on the parent Document object.
      */
-    public void shiftBackwards(Document document) {
-        setPosition(document, row, column - 1);
+    public void shiftBackwards() {
+        setPosition(row, column - 1);
     }//end method
 
     /**
-     * @param line Moves this object backwards by a step on the parent Document
-     * object.
+     * Moves this object backwards by a step on the parent Document object.
      */
-    public void shiftBackwards(Document document, int step) {
-        setPosition(document, row, column - step);
+    public void shiftBackwards(int step) {
+        setPosition(row, column - step);
     }//end method
 
     /**
-     * Moves this object backwards by a step size of 1 on the parent Document
+     * Moves this object forwards by a step size of 1 on the parent Document
      * object.
      */
-    public void shiftForwards(Document document) {
-        setPosition(document,row, column + 1);
+    public void shiftForwards() {
+        setPosition(row, column + 1);
     }//end method
 
     /**
-     * @param step Moves this object backwards by the step size on the parent
+     * @param step Moves this object forwards by the step size on the parent
      * Document object.
      */
-    public void shiftForwards(Document document, int step) {
-        setPosition(document, row, column + step);
+    public void shiftForwards(int step) {
+        setPosition(row, column + step);
     }//end method
 
     /**
      *
      * The backSpace action
      */
-    public void delete(Document d) {
-        getCurrent(d).handleBackSpaceKey(d);
+    public void delete() {
+        getCurrent().handleBackSpaceKey();
     }//end method
 
     /**
      * Removes all characters between startIndex and endIndex.. both of them
      * inclusive.
      *
-     * @param index The index from which data is to be deleted.
+     * @param endIndex The index from which data is to be deleted.
      */
-    public void delete(Document document, int endIndex) {
-        int startIndex = getIndex(document);
+    public void delete(int endIndex) {
+        int startIndex = getIndex();
 
 //ensure that the startIndex is always the lesser.
         if (startIndex > endIndex) {
@@ -512,7 +503,7 @@ public class Caret {
         }//end if
 
         for (int i = endIndex; i >= startIndex; i--) {
-            delete(document);
+            delete();
         }//end for loop
     }//end method
 
@@ -524,7 +515,7 @@ public class Caret {
      * text on the row before the caret position and in the second index, all of
      * the text on the row after the caret position.
      */
-    private String[] splitRowTextOnCaretPosition(Document document) {
+    private String[] splitRowTextOnCaretPosition() {
 
         String rowText = "";
 
@@ -548,7 +539,7 @@ public class Caret {
         else if (column >= len) {
             textB4Caret = rowText;
             textAfterCaret = "";
-            setPosition(document, row, len - 1);
+            setPosition(row, len - 1);
         }//end else if
 
         return new String[]{textB4Caret, textAfterCaret};
@@ -563,9 +554,9 @@ public class Caret {
      * text in the parent Document before the caret position and in the second
      * index,all of the text in the parent Document after the caret position.
      */
-    private String[] splitDocumentTextOnCaretPosition(Document document) {
+    private String[] splitDocumentTextOnCaretPosition() {
         String allText = document.getText();
-        int index = getIndex(document);
+        int index = getIndex();
         String textB4Caret = "";
         String textAfterCaret = "";
 
@@ -589,8 +580,8 @@ public class Caret {
      * Run this code whenever the user presses the enter key.
      *
      */
-    public void handleEnterKey(Document document) {
-        getCurrent(document).handleEnterKey(document);
+    public void handleEnterKey() {
+        getCurrent().handleEnterKey();
     }//end method
 
     /**
@@ -601,17 +592,13 @@ public class Caret {
      * Sentence object which could happen if proper initialization of the
      * Document is not carried out.
      */
-    public Sentence getCurrent(Document document) throws NullPointerException {
+    public Sentence getCurrent() throws NullPointerException {
         ArrayList<Sentence> sentences = document.getSentences();
-
-        //  System.out.println(sentences.isEmpty());
-        if (sentences.isEmpty()) {
-            document.appendSentence();
-        }
+ 
         /**
          * Record the position of the Caret in the parent Document object.
          */
-        int index = getIndex(document);
+        int index = getIndex();
         if (index < 0) {
             index = 0;
             return sentences.get(0);
@@ -619,7 +606,7 @@ public class Caret {
 
         int sz = sentences.size();
         for (int i = 0; i < sz; i++) {
-            if (sentences.get(i).contains(document, index)) {
+            if (sentences.get(i).contains(index)) {
                 return sentences.get(i);
             }//end if
         }//end for loop
@@ -630,10 +617,14 @@ public class Caret {
      *
      * @param text The text to write into the parent Document object.
      */
-    public void write(Document document, String text) {
-        getCurrent(document).write(document, text);
+    public synchronized void write(String text) {
+        if (text != null && !text.isEmpty()) {
+            if (column < 0) {
+                shiftForwards(Math.abs(column));//shift forward by absolute value of negative column index
+            }
+            getCurrent().write(text);
+        }
     }//end write method
-
 
     @Override
     public String toString() {

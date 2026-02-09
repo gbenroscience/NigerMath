@@ -27,6 +27,9 @@ import javax.swing.*;
  */
 public class Document implements KeyListener, MouseListener, MouseMotionListener, Runnable {
 
+    public final Object lock = new Object();
+    private JComponent renderer;
+
     /**
      * The Caret object of this Document.
      */
@@ -78,20 +81,18 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
     /**
      * The distance between lines of text.
      */
-    private int lineSpacing; 
+    private int lineSpacing;
 
     /**
      * An ArrayList of Sentence objects to be displayed in this Document.
      */
-    private ArrayList<Sentence> sentences = new ArrayList<Sentence>();
+    private volatile ArrayList<Sentence> sentences = new ArrayList<Sentence>();
 
     private final Thread timer;
 
     public Document() {
 
-        JFrame fr = new JFrame("");
-        fr.addNotify(); 
-        caret = new Caret();
+        caret = new Caret(this);
         commandText = "";//"cmd>> ";
         this.enabled = true;
         this.fgColor = Color.red;
@@ -104,23 +105,48 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         this.lineSpacing = 10;
         caret.setRow(0);
         caret.setColumn(0);
-        System.out.println(
-                "In the beginning: row = " + caret.getRow()
-                + "\ncolumn = " + caret.getColumn()
-                + "\nindex = " + caret.getIndex(this)
-        );
+        printCaretData();
 
         addSentence(0);
         this.timer = new Thread(this);
         timer.start();
     }//end method
 
+    private void printCaretData() {
+        System.out.println(
+                "Caret data: row = " + caret.getRow()
+                + "\ncolumn = " + caret.getColumn()
+                + "\nindex = " + caret.getIndex()
+                +"\navailable-sentences = "+sentences.size()
+        );
+    }
+
+    public void repaint() {
+        if (renderer != null) {
+            renderer.repaint();
+        }
+    }
+
+    public void repaint(Rectangle r) {
+        if (renderer != null) {
+            renderer.repaint(r);
+        }
+    }
+
+    public void setRenderer(JComponent renderer) {
+        this.renderer = renderer;
+    }
+
+    public JComponent getRenderer() {
+        return renderer;
+    }
+
     /**
      *
      * @param g The Graphics object used to draw.
      */
     public void draw(Graphics g) {
-        try { 
+        try {
             g.setFont(font);
             g.setColor(bgColor);
             g.fillRoundRect(location.x, location.y, size.width, size.height, 50, 50);
@@ -129,10 +155,10 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
             g.setColor(fgColor);
 
             for (int i = 0; i < sentences.size(); i++) {
-                sentences.get(i).draw(this, g);
+                sentences.get(i).draw(g);
             }//end for loop
 
-            caret.draw(this, g);
+            caret.draw(g);
         }//end try
         catch (NullPointerException nolian) {
             nolian.printStackTrace();
@@ -144,7 +170,7 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         return lineWidth;
     }
 
-    public void setLineWidth(int lineWidth) {
+    public final void setLineWidth(int lineWidth) {
         this.lineWidth = (lineWidth < (size.width - margin.width)) ? lineWidth : size.width - margin.width;
     }
 
@@ -186,7 +212,7 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      * class.
      */
     public String getText() {
-        int sz = sentences.size(); 
+        int sz = sentences.size();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < sz; i++) {
             sb.append(sentences.get(i).getText());
@@ -238,8 +264,6 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         return commandText;
     }
 
-     
-
     public void setSentences(ArrayList<Sentence> sentences) {
         this.sentences = sentences;
     }
@@ -250,19 +274,47 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
 
     /**
      *
-     * @param document
+     *
      * @param absoluteIndex An absolute index of a character within the main
      * text of this Document.
      * @return the Sentence object containing the character at that index.
      */
-    public Sentence getSentenceAt(Document document, int absoluteIndex) {
+    public Sentence getSentenceAt(int absoluteIndex) {
         int sz = sentences.size();
-        for (int i = 0; i < sz; i++) {
-            if (sentences.get(i).contains(document, absoluteIndex)) {
-                return sentences.get(i);
-            }//end if
-        }//end for
-        throw new IndexOutOfBoundsException(" Sentence Not Found! ");
+        /*Sentence[] sen = new Sentence[1];
+        sentences.stream().forEach(s -> {
+          if(s.contains(absoluteIndex)){
+              sen[0]=s;
+          }
+        });
+        if(sen[0]!=null){return sen[0];}*/
+        synchronized (lock) {
+            for (int i = 0; i < sz; i++) {
+                if (sentences.get(i).contains(absoluteIndex)) {
+                    return sentences.get(i);
+                }//end if
+            }//end for
+
+        }
+        System.out.println("appendSentence>>> in getSentenceAt()");
+        return appendSentence();
+    }
+
+    private void resetIndex() {
+        resetIndex(0);
+    }
+
+    private void resetIndex(int fromIndex) {
+        int sz = sentences.size();
+        if (fromIndex < 0) {
+            fromIndex = 0;
+        }
+        if (fromIndex < sz) {
+            for (int i = fromIndex; i < sz; i++) {
+                Sentence s = sentences.get(i);
+                s.setIndex(i);
+            }
+        }
     }
 
     /**
@@ -276,6 +328,15 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         return indexToLocation(index);
     }
 
+    public FontMetrics getFontMetrics(Font font) {
+        if (renderer != null) {
+            return renderer.getFontMetrics(font);
+        } else {
+            // Fallback during early init (rare)
+            return Toolkit.getDefaultToolkit().getFontMetrics(font);
+        }
+    }
+
     /**
      *
      * @param index The absolute index of the character within the main text of
@@ -284,7 +345,7 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      * string 'text' on the screen .
      */
     public Point indexToLocation(int index) {
-        Sentence sentence = getSentenceAt(this, index);
+        Sentence sentence = getSentenceAt(index);
         int[] row$Col = indexToRow$Column(index);
         row$Col = normalizePosition(row$Col[0], row$Col[1]);
         int xPos = location.x + margin.width;
@@ -326,38 +387,44 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
 
     @Override
     public void keyTyped(KeyEvent e) {
-        String input = String.valueOf(e.getKeyChar());
-        String evtdata = e.paramString().toLowerCase();
+        synchronized (lock) {
+            String input = String.valueOf(e.getKeyChar());
+            String evtdata = e.paramString().toLowerCase();
 
-        if (!evtdata.contains("backspace") && !evtdata.contains("escape") && !evtdata.contains("delete")
-                && !evtdata.contains("enter")) {
-            caret.write(this, input);
-        }//end if
+            if (!evtdata.contains("backspace") && !evtdata.contains("escape") && !evtdata.contains("delete")
+                    && !evtdata.contains("enter")) {
+                printCaretData();
+                System.out.println("sentences: " + sentences.size());
+                caret.write(input);
+            }//end if
+        }
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        String input = KeyEvent.getKeyText(e.getKeyCode()).toLowerCase();
-        if (input.equals("backspace")) {
-            try {
-                if (caret.getIndex(this) >= 0) {
-                    caret.delete(this);
-                }
-            }//end try
-            catch (IndexOutOfBoundsException indexOutOfBoundsException) {
-            }//end catch
-        }//end if
-        else if (input.equals("enter")) {
-            caret.handleEnterKey(this);
-        } else if (input.equals("left")) {
-            caret.shiftBackwards(this);
-        } else if (input.equals("right")) {
-            caret.shiftForwards(this);
-        } else if (input.equals("up")) {
-            caret.moveUp(this, caret.getColumn());
-
-        } else if (input.equals("down")) {
-            caret.moveDown(this, caret.getColumn());
+        synchronized (lock) {
+            String input = KeyEvent.getKeyText(e.getKeyCode()).toLowerCase();
+            if (input.equals("backspace")) {
+                try {
+                    if (caret.getIndex() >= 0) {
+                        caret.delete();
+                    }
+                }//end try
+                catch (IndexOutOfBoundsException indexOutOfBoundsException) {
+                }//end catch
+            }//end if
+            else if (input.equals("enter")) {
+                caret.handleEnterKey();
+            } else if (input.equals("left")) {
+                caret.shiftBackwards();
+            } else if (input.equals("right")) {
+                caret.shiftForwards();
+            } else if (input.equals("up")) {
+                caret.moveUp();
+            } else if (input.equals("down")) {
+                caret.moveDown();
+            }
+            repaint();
         }
 
     }//end method
@@ -374,10 +441,12 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
 
     @Override
     public void mousePressed(MouseEvent e) {
-        Point p = e.getPoint();
-        int[] row$col = caret.convertLocationToRow$Column(this, p);
-        caret.setState(CaretState.INSERTING);
-        caret.setPosition(this, row$col[0], row$col[1]);
+        synchronized (lock) {
+            Point p = e.getPoint();
+            int[] row$col = caret.convertLocationToRow$Column(p);
+            caret.setState(CaretState.INSERTING);
+            caret.setPosition(row$col[0], row$col[1]);
+        }
     }
 
     @Override
@@ -413,7 +482,7 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         int sz = sentences.size();
         ArrayList<String> scan = new ArrayList<>();
         for (int i = 0; i < sz; i++) {
-            scan.addAll(sentences.get(i).getRows(this));
+            scan.addAll(sentences.get(i).getRows());
         }//end for
         return scan;
     }//end method
@@ -424,30 +493,33 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      *
      * @param index The index the Sentence will occupy in this Document's
      * Sentence store.
+     * @return
      */
-    public void addSentence(int index) {
+    public final Sentence addSentence(int index) {
         Sentence s1 = new Sentence(this);
+        System.out.println("addSentence(int index) ---Sentence created");
         s1.setColor(fgColor);
         s1.setFont(font);
-        s1.setIndex(index);
-        s1.setText(" ");
-        sentences.add(s1);
+        s1.setText("");
+        addSentence(index, s1);
+        return s1;
     }//end method
 
     /**
      * Appends a Sentence object to the end of this Document. The Sentence is
      * initialized with a single space.
      *
-     * @param index The index the Sentence will occupy in this Document's
-     * Sentence store.
+     * @return
      */
-    public void appendSentence() {
+    public Sentence appendSentence() {
         Sentence s1 = new Sentence(this);
+        System.out.println("appendSentence() ---Sentence created");
         s1.setColor(fgColor);
         s1.setFont(font);
         s1.setIndex(sentences.size());
-        s1.setText(" ");
+        s1.setText("");
         sentences.add(s1);
+        return s1;
     }//end method
 
     /**
@@ -458,22 +530,25 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      * store. Inserts the specified Sentence at the specified position in this
      * list. Shifts the Sentence currently at that position (if any) and any
      * subsequent Sentence objects to the right (adds one to their indices).
+     * @return
      */
-    public void addSentence(int index, Sentence sentence) {
-        sentence.setIndex(index);
+    public Sentence addSentence(int index, Sentence sentence) {
         sentences.add(index, sentence);
+        resetIndex(index);
+        return sentence;
     }//end method
 
     /**
      * Appends a Sentence object to the end of this Document. The Sentence is
      * initialized with a single space.
      *
-     * @param index The index the Sentence will occupy in this Document's
-     * Sentence store.
+     * @param sentence
+     * @return
      */
-    public void appendSentence(Sentence sentence) {
+    public Sentence appendSentence(Sentence sentence) {
         sentence.setIndex(sentences.size());
         sentences.add(sentence);
+        return sentence;
     }//end method
 
     /**
@@ -622,8 +697,8 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         int index = row$ColumnToIndex(row$Col[0], row$Col[1]);
         String textAtIndex = getText().substring(index, index + 1);
         return new Rectangle(indexToLocation(index),
-                new Dimension(caret.getCurrent(this).getTextWidth(textAtIndex),
-                        caret.getCurrent(this).getTextHeight()));
+                new Dimension(caret.getCurrent().getTextWidth(textAtIndex),
+                        caret.getCurrent().getTextHeight()));
     }//end method
 
     /**
@@ -635,8 +710,8 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
     public Rectangle getCharRectangle(int index) {
         String textAtIndex = getText().substring(index, index + 1);
         return new Rectangle(indexToLocation(index),
-                new Dimension(caret.getCurrent(this).getTextWidth(textAtIndex),
-                        caret.getCurrent(this).getTextHeight()));
+                new Dimension(caret.getCurrent().getTextWidth(textAtIndex),
+                        caret.getCurrent().getTextHeight()));
     }//end method
 
     /**
@@ -660,23 +735,24 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
     public Point getCharLocation(int index) {
         return new Point(indexToLocation(index));
     }//end method
-public int reduceRowToMaxCharsAllowed(String text) {
-    int len = text.length();
-    int maxWidth = getLineWidth();
-    int i = 0;
 
-    // Use Document's font metrics directly
-    FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(getFont());
-    int minDistance = fm.stringWidth("@");
+    public int reduceRowToMaxCharsAllowed(String text) {
+        int len = text.length();
+        int maxWidth = getLineWidth();
+        int i = 0;
 
-    for (i = 0; i < len; i++) {
-        String cutText = text.substring(0, i + 1);
-        if (fm.stringWidth(cutText) + minDistance > maxWidth) {
-            return i + 1;
+        // Use Document's font metrics directly
+        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(getFont());
+        int minDistance = fm.stringWidth("@");
+
+        for (i = 0; i < len; i++) {
+            String cutText = text.substring(0, i + 1);
+            if (fm.stringWidth(cutText) + minDistance > maxWidth) {
+                return i + 1;
+            }
         }
+        return i; // return actual number of chars that fit
     }
-    return i; // return actual number of chars that fit
-}
 
     /**
      * Reduces a row that has more text than it should hold to a number of
@@ -692,10 +768,10 @@ public int reduceRowToMaxCharsAllowed(String text) {
         int len = text.length();
         int maxWidth = getLineWidth();
         int i = 0;
-        int minDistance = caret.getCurrent(this).getTextWidth("@");
+        int minDistance = caret.getCurrent().getTextWidth("@");
         for (i = 0; i < len; i++) {
             String cutText = text.substring(0, i + 1);
-            if (caret.getCurrent(this).getTextWidth(cutText) + minDistance > maxWidth) {
+            if (caret.getCurrent().getTextWidth(cutText) + minDistance > maxWidth) {
                 return i + 1;
             }//end if
 
@@ -730,7 +806,7 @@ public int reduceRowToMaxCharsAllowed(String text) {
      * added to the row.
      */
     public boolean textCanStillEnterDocumentRow(String text) {
-        int rowWidth = caret.getCurrent(this).getTextWidth(text);
+        int rowWidth = caret.getCurrent().getTextWidth(text);
         int maxWidth = this.getLineWidth();
         /**
          * The @ character has perhaps the largest font size of characters in
@@ -740,7 +816,7 @@ public int reduceRowToMaxCharsAllowed(String text) {
          * filled.
          *
          */
-        int minDistance = caret.getCurrent(this).getTextWidth("@");
+        int minDistance = caret.getCurrent().getTextWidth("@");
 
         /**
          * Check if: 1. The row width is equal to the maximum width. 2. The row
@@ -784,7 +860,7 @@ public int reduceRowToMaxCharsAllowed(String text) {
      * the row.</b>
      */
     public boolean textOverFlowsDocumentRow(String text) {
-        int rowWidth = caret.getCurrent(this).getTextWidth(text);
+        int rowWidth = caret.getCurrent().getTextWidth(text);
         int maxWidth = this.getLineWidth();
         return rowWidth > maxWidth;
     }//end method.
@@ -821,7 +897,7 @@ public int reduceRowToMaxCharsAllowed(String text) {
      */
     public boolean textFillsDocumentRow(String text) {
 
-        int rowWidth = caret.getCurrent(this).getTextWidth(text);
+        int rowWidth = caret.getCurrent().getTextWidth(text);
         int maxWidth = this.getLineWidth();
         /**
          * The @ character has perhaps the largest font size of characters in
@@ -831,7 +907,7 @@ public int reduceRowToMaxCharsAllowed(String text) {
          * filled.
          *
          */
-        int minDistance = caret.getCurrent(this).getTextWidth("@");
+        int minDistance = caret.getCurrent().getTextWidth("@");
 
         /**
          * Check if: 1. The row width is less than the maximum width but the row
@@ -848,8 +924,23 @@ public int reduceRowToMaxCharsAllowed(String text) {
         }
     }//end method
 
+    public void garbageCollectSentences() {
+        SwingUtilities.invokeLater(() -> {
+            java.util.List<Sentence> garbage = new ArrayList<>();
+            sentences.stream().forEach((s) -> {
+                if (s.getText().isEmpty() && caret.getCurrent() != s) {
+                    garbage.add(s);
+                }//end if
+            });
+            sentences.removeAll(garbage);
+            resetIndex();
+            System.out.println("Garbage collector run. Deleted " + garbage.size() + " items");
+        });
+
+    }
+
     @Override
-    public void run() {
+    public synchronized void run() {
         Thread me = Thread.currentThread();
         while (timer == me) {
             try {
@@ -860,13 +951,7 @@ public int reduceRowToMaxCharsAllowed(String text) {
                 } else if (!caret.isVisible()) {
                     caret.setVisible(true);
                 }
-
-                int sz = sentences.size();
-                for (int i = 0; i < sz; i++) {
-                    if (sentences.get(i).getText().isEmpty()) {
-                        sentences.remove(i);
-                    }//end if
-                }
+                repaint();
 
             }//end try
             catch (InterruptedException intEx) {

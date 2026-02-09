@@ -22,9 +22,8 @@ import javax.swing.JFrame;
  *
  * @author JIBOYE OLUWAGBEMIRO OLAOLUWA
  */
-public class CommandPrompt extends javax.swing.JPanel implements Runnable {
-
-    private final Thread timer;
+public class CommandPrompt extends javax.swing.JPanel {
+ 
 
     /**
      * Creates new form CommandPrompt
@@ -35,12 +34,13 @@ public class CommandPrompt extends javax.swing.JPanel implements Runnable {
         f.setVisible(true);
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         f.setSize(1000, 900);
+        document1.setRenderer(this);
         f.addKeyListener(document1);
         f.addMouseListener(document1);
         addMouseListener(document1);
         f.add(this);
-        Sentence s = new Sentence(document1);
-        s.setText("Hello guys!");
+        Sentence s = new Sentence(document1);  System.out.println("In CommandPrompt() constructor ---Sentence created");
+        s.setText("");
         document1.appendSentence(s);
         document1.setLocation(new Point(100, 200));
         document1.setBgColor(Color.white);
@@ -48,11 +48,13 @@ public class CommandPrompt extends javax.swing.JPanel implements Runnable {
         document1.setFont(new Font("Calibri", Font.BOLD, 22));
         document1.setSize(new Dimension(1000, 900));
         document1.setMargin(new Dimension(40, 40));
-        timer = new Thread(this);
-        timer.start();
 
     }//end constructor
 
+    
+    
+    
+    
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -122,23 +124,6 @@ public class CommandPrompt extends javax.swing.JPanel implements Runnable {
         new CommandPrompt();
     }
 
-    @Override
-    public void run() {
-        Thread me = Thread.currentThread();
-        while (timer == me) {
-            try {
-                Thread.currentThread().sleep(500);
-            }//end try
-            catch (InterruptedException intEx) {
-
-            }//end catch
-            repaint();
-            area.setText(document1.getCaret().toString()
-                    + "\nlineSpacing = " + document1.getLineSpacing() +", text is "+document1.getText()
-                    + "\n has " + document1.getText().length() + " characters");
-
-        }//end while loop
-
-    }
+   
 
 }
