@@ -148,13 +148,13 @@ public class Sentence {
      * this Sentence object.
      */
     public int getRelativeCharIndex(int absoluteIndex) {
-    if (text.isEmpty()) {
-        // For empty sentence, only index 0 is valid
-        if (absoluteIndex == getAbsoluteStartIndex()) {
-            return 0;
+        if (text.isEmpty()) {
+            // For empty sentence, only index 0 is valid
+            if (absoluteIndex == getAbsoluteStartIndex()) {
+                return 0;
+            }
+            throw new IndexOutOfBoundsException("Index " + absoluteIndex + " not valid in empty sentence");
         }
-        throw new IndexOutOfBoundsException("Index " + absoluteIndex + " not valid in empty sentence");
-    }
 
         int absStartIndex = getAbsoluteStartIndex();
         int absStopIndex = getAbsoluteStopIndex();
@@ -176,7 +176,7 @@ public class Sentence {
 
         throw new IndexOutOfBoundsException("Program Crash Imminent! Index System Failed! What Have You Done?");
     }//end method
- 
+
     /**
      * return the index of the first letter of this object in the overall text
      * of the parent Document.
@@ -461,29 +461,30 @@ public class Sentence {
      * @return the deleted character string.
      *
      */
-    public String handleBackSpaceKey() {
-        int abs_Index = document.getCaret().getIndex();
+  public String handleBackSpaceKey() {
+    int abs_Index = document.getCaret().getIndex();
 
-        // If caret is at start, nothing to delete
-        if (abs_Index <= 0) {
-            return ""; // or null, depending on your design
-        }
-
-        int rel_Index = getRelativeCharIndex(abs_Index);
-        String part1 = text.substring(0, rel_Index);
-        String charRemoved = text.substring(rel_Index, rel_Index + 1);
-        String part2 = text.substring(rel_Index + 1);
-        setText(part1 + part2);
-
-        // Clamp caret position so it never goes below 0
-        int newIndex = abs_Index - 1;
-        if (newIndex < 0) {
-            newIndex = 0;
-        }
-        document.getCaret().setPosition(newIndex);
-
-        return charRemoved;
+    if (abs_Index < 0 || text.isEmpty()) {
+        return "";
     }
+
+    int rel_Index = getRelativeCharIndex(abs_Index);
+    String part1 = text.substring(0, rel_Index);
+    String charRemoved = text.substring(rel_Index, rel_Index + 1);
+    String part2 = text.substring(rel_Index + 1);
+    setText(part1 + part2);
+
+    if (text.isEmpty()) {
+        document.getSentences().remove(this);
+        document.garbageCollectSentences();
+        document.getCaret().setPosition(Math.max(abs_Index - 1, 0));
+    } else {
+        document.getCaret().setPosition(Math.max(abs_Index - 1, 0));
+    }
+
+    return charRemoved;
+}
+
 
     /**
      * Run this method whenever a range of characters is deleted simultaneously
@@ -496,7 +497,7 @@ public class Sentence {
      *
      * @return the deleted character string.
      */
-    public String delete(int startIndex, int endIndex) {
+    public String delete1(int startIndex, int endIndex) {
 
         if (contains(startIndex) && contains(endIndex)) {
             int relStartIndex = getRelativeCharIndex(startIndex);
@@ -511,5 +512,28 @@ public class Sentence {
             throw new IndexOutOfBoundsException();
         }//end else
     }//end method
+    public String delete(int startIndex, int endIndex) {
+    if (contains(startIndex) && contains(endIndex)) {
+        int relStartIndex = getRelativeCharIndex(startIndex);
+        int relEndIndex = getRelativeCharIndex(endIndex);
+        String part1 = text.substring(0, relStartIndex);
+        String charStringRemoved = text.substring(relStartIndex, relEndIndex + 1);
+        String part2 = text.substring(relEndIndex + 1);
+        setText(part1 + part2);
+
+        // If sentence becomes empty, remove it from the document
+        if (text.isEmpty()) {
+            document.getSentences().remove(this);
+            document.garbageCollectSentences();
+            // Reset caret to a safe position
+            document.getCaret().setPosition(Math.max(startIndex - 1, 0));
+        }
+
+        return charStringRemoved;
+    } else {
+        throw new IndexOutOfBoundsException();
+    }
+}
+
 
 }//end class Sentence

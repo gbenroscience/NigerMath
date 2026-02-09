@@ -597,11 +597,6 @@ public class Caret {
     public void delete(int endIndex) {
         int startIndex = getIndex();
 
-        // If caret is invalid or document is empty, nothing to delete
-        if (startIndex < 0 || document.getText().isEmpty()) {
-            return;
-        }
-
         // Ensure startIndex is always the lesser
         if (startIndex > endIndex) {
             int swap = endIndex;
@@ -609,23 +604,23 @@ public class Caret {
             startIndex = swap;
         }
 
-        // If range is empty or startIndex == endIndex == 0, nothing to delete
-        if (startIndex == endIndex && startIndex == 0) {
+        // Clamp indices to valid range
+        String text = document.getText();
+        if (text.isEmpty()) {
             return;
         }
-
-        // Clamp to valid text length
-        int textLen = document.getText().length();
-        if (endIndex >= textLen) {
-            endIndex = textLen - 1;
+        if (endIndex >= text.length()) {
+            endIndex = text.length() - 1;
         }
 
         for (int i = endIndex; i >= startIndex; i--) {
-            // Safe delete: only if index > 0
-            if (getIndex() > 0) {
-                delete();
+            if (getIndex() >= 0) {
+                delete(); // backspace one character
             }
         }
+
+        // After deletion, clean up empty sentences
+        document.garbageCollectSentences();
     }
 
     /**
@@ -713,27 +708,6 @@ public class Caret {
      * Sentence object which could happen if proper initialization of the
      * Document is not carried out.
      */
-    public Sentence getCurrent1() throws NullPointerException {
-        ArrayList<Sentence> sentences = document.getSentences();
-
-        /**
-         * Record the position of the Caret in the parent Document object.
-         */
-        int index = getIndex();
-        if (index < 0) {
-            index = 0;
-            return sentences.get(0);
-        }
-
-        int sz = sentences.size();
-        for (int i = 0; i < sz; i++) {
-            if (sentences.get(i).contains(index)) {
-                return sentences.get(i);
-            }//end if
-        }//end for loop
-        return null;
-    }
-
     public Sentence getCurrent() throws NullPointerException {
         ArrayList<Sentence> sentences = document.getSentences();
         int index = getIndex();
