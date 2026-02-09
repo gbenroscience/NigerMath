@@ -130,14 +130,14 @@ public class Caret {
     }
 
     /**
-     * 
+     *
      * @param row The row that the position will lie on.
      * @param col The column that the position will lie on.
      */
     public void setPosition(int row, int col) {
-        int row$Col[] = document.normalizePosition(row, col);
-        setRow(row$Col[0]);
-        setColumn(row$Col[1]);
+        int[] rowCol = document.normalizePosition(row, col);
+        this.row = rowCol[0];
+        this.column = rowCol[1];
     }
 
     /**
@@ -349,14 +349,17 @@ public class Caret {
      * @param document
      */
     public int getIndex() {
+        // Handle empty text
         if (document.getText().isEmpty()) {
-            return -1;
-        }//end if
-        else {
-            int[] row$Col = document.normalizePosition(row, column);
-            return document.row$ColumnToIndex(row$Col[0], row$Col[1]);
-        }//en//end else
-    }//end method
+            return 0;
+        }
+
+        // Normalize row/col first (handles spill-over and kick-back)
+        int[] rowCol = document.normalizePosition(row, column);
+
+        // Convert normalized row/col to absolute index
+        return document.row$ColumnToIndex(rowCol[0], rowCol[1]);
+    }
 
     public int numOfItemsOnRow(int row) {
         return document.getScanner().get(row).length();
@@ -384,6 +387,34 @@ public class Caret {
         return document.getText().substring(start, getIndex());
     }//end method
 
+    private int[] clampPosition(int row, int col) {
+        ArrayList<String> scan = document.getScanner();
+
+        // Handle empty document
+        if (scan.isEmpty()) {
+            return new int[]{0, 0};
+        }
+
+        // Clamp row
+        if (row < 0) {
+            row = 0;
+        }
+        if (row >= scan.size()) {
+            row = scan.size() - 1;
+        }
+
+        // Clamp column
+        int rowLen = scan.get(row).length();
+        if (col < 0) {
+            col = 0;
+        }
+        if (col >= rowLen) {
+            col = rowLen - 1;
+        }
+
+        return new int[]{row, col};
+    }
+
     /**
      *
      * This method assumes that a row exists above the Caret object that it can
@@ -394,8 +425,12 @@ public class Caret {
      * to the closest Point object to it on the line.
      */
     public void moveUp() {
-        setPosition(row - 1, column);
-    }//end method
+        int newRow = row - 1;
+        int newCol = column;
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
 
     /**
      * This method assumes that a row exists above the Caret object that it can
@@ -404,8 +439,12 @@ public class Caret {
      * @param col The column to jump to on the row above the current one.
      */
     public void moveUp(int col) {
-        setPosition(row - 1, col);
-    }//end method
+        int newRow = row - 1;
+        int newCol = col;
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
 
     /**
      * This method assumes that a row exists beneath the Caret object that it
@@ -416,8 +455,12 @@ public class Caret {
      * to the closest Point object to it on the line.
      */
     public void moveDown() {
-        setPosition(row + 1, 0);
-    }//end method
+        int newRow = row + 1;
+        int newCol = column;
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
 
     /**
      * This method assumes that a row exists beneath the Caret object that it
@@ -426,14 +469,20 @@ public class Caret {
      * @param col The column to jump to on the row below the current one
      */
     public void moveDown(int col) {
-        setPosition(row + 1, col);
+        int newRow = row + 1;
+        int newCol = col;
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
     }
 
     /**
      * Jumps to the top of the page.
      */
     public void gotoTopOfPage() {
-        setPosition(0, 0);
+        // Always clamp to the very first character
+        int[] pos = clampPosition(0, 0);
+        setPosition(pos[0], pos[1]);
     }
 
     /**
@@ -441,42 +490,95 @@ public class Caret {
      */
     public void gotoBottomOfPage() {
         ArrayList<String> scan = document.getScanner();
+
+        if (scan.isEmpty()) {
+            // Empty document → clamp to start
+            setPosition(0, 0);
+            return;
+        }
+
         int lastRow = scan.size() - 1;
         int lastCol = scan.get(lastRow).length() - 1;
-        setPosition(lastRow, lastCol);
+
+        // Clamp to the last valid character
+        int[] pos = clampPosition(lastRow, lastCol);
+        setPosition(pos[0], pos[1]);
     }
 
     /**
-     *
-     *
      * Moves this object backwards by a step on the parent Document object.
      */
     public void shiftBackwards() {
-        setPosition(row, column - 1);
-    }//end method
+        int newRow = row;
+        int newCol = column - 1;
 
-    /**
-     * Moves this object backwards by a step on the parent Document object.
-     */
+        if (newCol < 0) {
+            newRow = row - 1;
+            if (newRow >= 0) {
+                newCol = document.getScanner().get(newRow).length() - 1;
+            } else {
+                newRow = 0;
+                newCol = 0;
+            }
+        }
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
+
     public void shiftBackwards(int step) {
-        setPosition(row, column - step);
-    }//end method
+        int newRow = row;
+        int newCol = column - step;
+
+        // If moving left past start of row, kick back into previous rows
+        while (newCol < 0 && newRow > 0) {
+            newRow--;
+            newCol += document.getScanner().get(newRow).length();
+        }
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
 
     /**
      * Moves this object forwards by a step size of 1 on the parent Document
      * object.
      */
     public void shiftForwards() {
-        setPosition(row, column + 1);
-    }//end method
+        int newRow = row;
+        int newCol = column + 1;
+
+        int rowLen = document.getScanner().get(row).length();
+        if (newCol >= rowLen) {
+            newRow = row + 1;
+            newCol = 0;
+        }
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
 
     /**
      * @param step Moves this object forwards by the step size on the parent
      * Document object.
      */
     public void shiftForwards(int step) {
-        setPosition(row, column + step);
-    }//end method
+        int newRow = row;
+        int newCol = column + step;
+
+        // If moving right past end of row, spill into next rows
+        while (newRow < document.getScanner().size()) {
+            int rowLen = document.getScanner().get(newRow).length();
+            if (newCol < rowLen) {
+                break;
+            }
+            newCol -= rowLen;
+            newRow++;
+        }
+
+        int[] pos = clampPosition(newRow, newCol);
+        setPosition(pos[0], pos[1]);
+    }
 
     /**
      *
@@ -495,17 +597,36 @@ public class Caret {
     public void delete(int endIndex) {
         int startIndex = getIndex();
 
-//ensure that the startIndex is always the lesser.
+        // If caret is invalid or document is empty, nothing to delete
+        if (startIndex < 0 || document.getText().isEmpty()) {
+            return;
+        }
+
+        // Ensure startIndex is always the lesser
         if (startIndex > endIndex) {
             int swap = endIndex;
             endIndex = startIndex;
             startIndex = swap;
-        }//end if
+        }
+
+        // If range is empty or startIndex == endIndex == 0, nothing to delete
+        if (startIndex == endIndex && startIndex == 0) {
+            return;
+        }
+
+        // Clamp to valid text length
+        int textLen = document.getText().length();
+        if (endIndex >= textLen) {
+            endIndex = textLen - 1;
+        }
 
         for (int i = endIndex; i >= startIndex; i--) {
-            delete();
-        }//end for loop
-    }//end method
+            // Safe delete: only if index > 0
+            if (getIndex() > 0) {
+                delete();
+            }
+        }
+    }
 
     /**
      * Splits a <b color ='red'>row</b>
@@ -592,9 +713,9 @@ public class Caret {
      * Sentence object which could happen if proper initialization of the
      * Document is not carried out.
      */
-    public Sentence getCurrent() throws NullPointerException {
+    public Sentence getCurrent1() throws NullPointerException {
         ArrayList<Sentence> sentences = document.getSentences();
- 
+
         /**
          * Record the position of the Caret in the parent Document object.
          */
@@ -611,6 +732,29 @@ public class Caret {
             }//end if
         }//end for loop
         return null;
+    }
+
+    public Sentence getCurrent() throws NullPointerException {
+        ArrayList<Sentence> sentences = document.getSentences();
+        int index = getIndex();
+
+        if (index < 0) {
+            index = 0;
+        }
+
+        for (Sentence s : sentences) {
+            if (s.contains(index)) {
+                return s;
+            }
+        }
+
+        // Fallback: if no sentence contains the index, return the first one
+        if (!sentences.isEmpty()) {
+            return sentences.get(0);
+        }
+
+        // As a last resort, create a new sentence
+        return document.appendSentence();
     }
 
     /**

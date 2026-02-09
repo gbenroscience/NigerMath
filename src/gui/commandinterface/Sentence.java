@@ -47,7 +47,7 @@ public class Sentence {
          */
         this.color = document.getFgColor();
         this.font = document.getFont();
-        System.out.println("Sentence "+id+" created!");
+        System.out.println("Sentence " + id + " created!");
     }//end constructor;
 
     public Document getDocument() {
@@ -121,10 +121,14 @@ public class Sentence {
      * that maps onto the supplied absolute index.
      */
     public boolean contains(int absoluteIndex) {
+        if (text.isEmpty()) {
+            // Treat empty sentence as containing index 0 at its start
+            return absoluteIndex == getAbsoluteStartIndex();
+        }
         int absStartIndex = getAbsoluteStartIndex();
         int absStopIndex = getAbsoluteStopIndex();
         return (absStartIndex <= absoluteIndex && absStopIndex >= absoluteIndex);
-    }//end method.
+    }
 
     /**
      *
@@ -144,6 +148,13 @@ public class Sentence {
      * this Sentence object.
      */
     public int getRelativeCharIndex(int absoluteIndex) {
+    if (text.isEmpty()) {
+        // For empty sentence, only index 0 is valid
+        if (absoluteIndex == getAbsoluteStartIndex()) {
+            return 0;
+        }
+        throw new IndexOutOfBoundsException("Index " + absoluteIndex + " not valid in empty sentence");
+    }
 
         int absStartIndex = getAbsoluteStartIndex();
         int absStopIndex = getAbsoluteStopIndex();
@@ -165,7 +176,7 @@ public class Sentence {
 
         throw new IndexOutOfBoundsException("Program Crash Imminent! Index System Failed! What Have You Done?");
     }//end method
-
+ 
     /**
      * return the index of the first letter of this object in the overall text
      * of the parent Document.
@@ -314,8 +325,6 @@ public class Sentence {
         return rows;
     }
 
- 
-
     /**
      *
      * @param doc The parent Document object.
@@ -371,6 +380,9 @@ public class Sentence {
     public void write(String txt) {
 // retrieve the index of the caret.
         int abs_Index = document.getCaret().getIndex();
+        if (abs_Index < 0) {
+            abs_Index = 0; // clamp
+        }
         String part1 = "";
         String part2 = "";
 
@@ -418,7 +430,7 @@ public class Sentence {
         String part2 = text.substring(rel_Index + 1);
         setText(part1);
         Sentence sentence = new Sentence(document);
-            System.out.println("In handleEnterKey ---Sentence created");
+        System.out.println("In handleEnterKey ---Sentence created");
         if (!part2.isEmpty()) {
             sentence.setText(part2);
             sentence.setColor(color);
@@ -429,7 +441,7 @@ public class Sentence {
             document.getCaret().setPosition(caretIndex);
             return sentence;
         }//end if
-        else { 
+        else {
             part2 = " ";
             sentence.setText(part2);
             sentence.setColor(color);
@@ -450,16 +462,28 @@ public class Sentence {
      *
      */
     public String handleBackSpaceKey() {
-// retrieve the index of the caret.
         int abs_Index = document.getCaret().getIndex();
+
+        // If caret is at start, nothing to delete
+        if (abs_Index <= 0) {
+            return ""; // or null, depending on your design
+        }
+
         int rel_Index = getRelativeCharIndex(abs_Index);
         String part1 = text.substring(0, rel_Index);
         String charRemoved = text.substring(rel_Index, rel_Index + 1);
         String part2 = text.substring(rel_Index + 1);
         setText(part1 + part2);
-        document.getCaret().setPosition(abs_Index - 1);
+
+        // Clamp caret position so it never goes below 0
+        int newIndex = abs_Index - 1;
+        if (newIndex < 0) {
+            newIndex = 0;
+        }
+        document.getCaret().setPosition(newIndex);
+
         return charRemoved;
-    }//end method
+    }
 
     /**
      * Run this method whenever a range of characters is deleted simultaneously

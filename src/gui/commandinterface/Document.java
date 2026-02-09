@@ -117,7 +117,7 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
                 "Caret data: row = " + caret.getRow()
                 + "\ncolumn = " + caret.getColumn()
                 + "\nindex = " + caret.getIndex()
-                +"\navailable-sentences = "+sentences.size()
+                + "\navailable-sentences = " + sentences.size()
         );
     }
 
@@ -561,34 +561,38 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      * @throws IndexOutOfBoundsException if the index does not map to any row or
      * column in the parent Document.
      */
-    public int[] indexToRow$Column(int index) throws IndexOutOfBoundsException {
+    public int[] indexToRow$Column(int index) {
         ArrayList<String> scan = getScanner();
-        int sz = scan.size();
-        int len = getText().length();
-        if (len == 0) {
-            return new int[]{0, -1};
-        } else if (index < 0) {
-            return new int[]{0, -1};
-        } else if (index >= 0) {
+        String text = getText();
 
-            if (index >= len) {
-                index = len - 1;
+        if (scan.isEmpty() || text.isEmpty()) {
+            return new int[]{0, 0};
+        }
+
+        // Clamp index
+        if (index < 0) {
+            index = 0;
+        }
+        if (index >= text.length()) {
+            index = text.length() - 1;
+        }
+
+        int row = 0;
+        int col = index;
+        for (String rowText : scan) {
+            if (col < rowText.length()) {
+                return new int[]{row, col};
+            } else {
+                col -= rowText.length();
+                row++;
             }
+        }
 
-            int drow = -1;
-            int dcol = -1;
-            int count = 0;
-            int rowLen = 0;
-            while ((index - (rowLen = scan.get(count).length())) >= 0) {
-                index -= rowLen;
-                ++count;
-            }//end while
-            drow = count;
-            dcol = index;
-            return new int[]{drow, dcol};
-        }//end else if
-        throw new IndexOutOfBoundsException("Terrible Error! Cannot Be Accounted For. Index System Has Crashed!index = " + index);
-    }//end method
+        // Fallback: last row/col
+        int lastRow = scan.size() - 1;
+        int lastCol = scan.get(lastRow).length() - 1;
+        return new int[]{lastRow, lastCol};
+    }
 
     /**
      *
@@ -599,42 +603,37 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      *
      */
     public int row$ColumnToIndex(int row, int column) {
+        ArrayList<String> scan = getScanner();
 
-        if (!getText().isEmpty()) {
-
-            ArrayList<String> store = getScanner();
-            int sz = store.size();
-
-            int accIndex = 0;
-            for (int i = 0; i < sz; i++) {
-
-                int syz = store.get(i).length();
-                if (i < row) {
-                    accIndex += syz;
-                }//end if
-                else if (i == row) {
-                    accIndex += (column);
-                    break;
-                }//end else if
-
-            }//end for loop
-
-            int len = getText().length();
-
-            if (accIndex < len) {
-                return accIndex;
-            }//end if
-            else {
-                throw new IndexOutOfBoundsException("Row&Column " + "[" + row + ", " + column + "] reported at index = " + accIndex
-                        + "\nare outside document index '" + (len - 1) + "'");
-            }//end else
-        }//end if
-        //empty document
-        else {
-            return -1;
+        if (scan.isEmpty()) {
+            return -1; // empty document
         }
 
-    }//end method
+        // Clamp row
+        if (row < 0) {
+            row = 0;
+        }
+        if (row >= scan.size()) {
+            row = scan.size() - 1;
+        }
+
+        int accIndex = 0;
+        for (int i = 0; i < row; i++) {
+            accIndex += scan.get(i).length();
+        }
+
+        // Clamp column
+        int rowLen = scan.get(row).length();
+        if (column < 0) {
+            column = 0;
+        }
+        if (column >= rowLen) {
+            column = rowLen - 1;
+        }
+
+        accIndex += column;
+        return accIndex;
+    }
 
     /**
      *
@@ -658,21 +657,12 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      *
      */
     public int[] normalizePosition(int row, int column) {
-        ArrayList<String> scan = getScanner();
-        int accIndex = 0;
-        for (int i = 0; i < scan.size(); i++) {
-            int rowLen = scan.get(i).length();
-            if (i < row) {
-                accIndex += rowLen;
-            }//end if
-            else if (i == row) {
-                accIndex += (column);
-                break;
-            }//end else if
-        }//end for
+        // Convert to absolute index
+        int index = row$ColumnToIndex(row, column);
 
-        return indexToRow$Column(accIndex);
-    }//end method.
+        // Convert back to normalized row/col
+        return indexToRow$Column(index);
+    }
 
     /**
      *
