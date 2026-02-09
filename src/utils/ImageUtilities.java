@@ -9,7 +9,6 @@ package utils;
  *
  * @author GBEMIRO JIBOYE <gbenroscience@gmail.com>
  */
-
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -105,20 +104,20 @@ public class ImageUtilities {
      */
     public static void saveImage(BufferedImage img, String ref) {
         //For no specified format, use png
-        if(!ref.contains(".")){
+        if (!ref.contains(".")) {
             ref = ref.concat(".png");
         }
         try {
             String format = "";
             String lowercaseRef = ref.toLowerCase();
-            if(lowercaseRef.endsWith("jpg") || lowercaseRef.endsWith("jpeg")){
+            if (lowercaseRef.endsWith("jpg") || lowercaseRef.endsWith("jpeg")) {
                 format = "jpg";
-            }else if(lowercaseRef.endsWith("png")){
+            } else if (lowercaseRef.endsWith("png")) {
                 format = "png";
-            }else if(lowercaseRef.endsWith("tiff") || lowercaseRef.endsWith("bmp") || lowercaseRef.endsWith("gif")){
-                format = lowercaseRef.substring(lowercaseRef.lastIndexOf(".")+1);
-            }else{
-                throw new InputMismatchException("We currently do not support the image format specified in "+ref);
+            } else if (lowercaseRef.endsWith("tiff") || lowercaseRef.endsWith("bmp") || lowercaseRef.endsWith("gif")) {
+                format = lowercaseRef.substring(lowercaseRef.lastIndexOf(".") + 1);
+            } else {
+                throw new InputMismatchException("We currently do not support the image format specified in " + ref);
             }
             ImageIO.write(img, format, new File(ref));
         } catch (InputMismatchException | IOException e) {
@@ -144,11 +143,9 @@ public class ImageUtilities {
             return new byte[]{};
         }
     }
-    
- 
 
     /**
-     * 
+     *
      * @param bufferedImage The BufferedImage object.
      * @param format The image format e.g. jpg or png etc.
      * @return the bytes of the image as a byte array.
@@ -166,7 +163,6 @@ public class ImageUtilities {
             return new byte[]{};
         }
     }
-
 
     /**
      *
@@ -296,23 +292,30 @@ public class ImageUtilities {
      *
      * @param obj The swing object whose image is needed.
      * @return a BufferedImage object of the JComponent.
-     */
+     */  
     public static BufferedImage createSwingObjectImage(JComponent obj) {
+        // 1. Check if the component has a size; if not, use preferred size
+        int w = obj.getWidth() > 0 ? obj.getWidth() : obj.getPreferredSize().width;
+        int h = obj.getHeight() > 0 ? obj.getHeight() : obj.getPreferredSize().height;
 
-        //Calculate the total width and height of the swing object.
-        int totalWidth = obj.getWidth();
-        int totalHeight = obj.getHeight();
+        // Avoid 0-dimension errors
+        if (w <= 0 || h <= 0) {
+            w = 1;
+            h = 1;
+        }
 
-        //create a BufferedImage object of total width and height
-        BufferedImage objImage = new BufferedImage(totalWidth, totalHeight, BufferedImage.TYPE_INT_RGB);
+        // 2. ARGB supports transparency
+        BufferedImage objImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2D = objImage.createGraphics();
 
-        //get the graphics object from the image
-        Graphics2D g2D = (Graphics2D) objImage.getGraphics();
+        // 3. Ensure the component layout is triggered
+        obj.setSize(w, h);
+        obj.doLayout();
 
-        //paint the Swing object on image graphics
+        // 4. Paint and Clean up
         obj.paint(g2D);
+        g2D.dispose();
 
-        //return the image
         return objImage;
     }
 
@@ -530,13 +533,13 @@ public class ImageUtilities {
         return bufferedImage;
     }
 
-    public static BufferedImage toBufferedImage(ImageIcon icon , int imageType) {
+    public static BufferedImage toBufferedImage(ImageIcon icon, int imageType) {
         BufferedImage bi = new BufferedImage(
                 icon.getIconWidth(),
                 icon.getIconHeight(),
                 imageType);
         Graphics g = bi.createGraphics();
-        
+
 // paint the Icon to the BufferedImage.
         icon.paintIcon(null, g, 0, 0);
         g.dispose();

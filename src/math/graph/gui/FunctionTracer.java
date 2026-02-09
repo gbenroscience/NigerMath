@@ -42,10 +42,10 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
-import math.graph.alpha.SwingDrawingContext;
-import math.graph.alpha.gui.GraphPanel;
+import math.graph.gui.adapter.SwingDrawingContext;
 import utils.ImageUtilities;
 import utils.TableUtils;
 
@@ -74,8 +74,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
     public FunctionTracer(String function) {
         super("TRACING OUT FUNCTIONS THE NAIJA WAY...");
         initComponents();
-        
-        
+
         addHierarchyListener(new HierarchyListener() {
             @Override
             public void hierarchyChanged(HierarchyEvent e) {
@@ -87,7 +86,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
                     if (parent != null) {
                         Dimension size = getParent().getPreferredSize();
                         com.github.gbenroscience.math.Point locationOfOrigin = new com.github.gbenroscience.math.Point(size.width / 2, size.height / 2);
-                        paper.setLocationOfOrigin(locationOfOrigin); 
+                        paper.setLocationOfOrigin(locationOfOrigin);
                         paper.getGrid().setLocationOfOrigin(locationOfOrigin);
                         repaint();
                         parent.removeHierarchyListener(this);
@@ -121,7 +120,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
         setResizable(false);
         Dimension sz = Toolkit.getDefaultToolkit().getScreenSize();
         setPreferredSize(sz);
-        pack();
+
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
         addWindowListener(new WindowAdapter() {
@@ -171,7 +170,6 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
 
         }
         timer.start();
-        pack();
     }//end constructor
 
     /**
@@ -296,34 +294,33 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
      * function which is what objects of this class can process.
      */
     public void createCompoundFunctionFromTableEntries() {
-        String compound = "";
+        StringBuilder compound = new StringBuilder();
 
         for (int rows = 0; rows < verticesTable.getRowCount(); rows++) {
             try {
                 //hors and vars must have the format: [num1,num2,num3,...num_i:]
                 String hors = (String) verticesTable.getValueAt(rows, 1);
                 String vers = (String) verticesTable.getValueAt(rows, 2);
-                String join = hors.concat(vers);
-                if (!join.trim().isEmpty()) {
-                    compound = compound.concat(join.concat(";"));
-                }//end if
+                if(!hors.trim().isEmpty() && !vers.isEmpty()){
+                    compound.append(hors).append(vers).append(";");
+                }
             }//end try
             catch (NullPointerException nolian) {
-
+                nolian.printStackTrace();
             }
         }//end for
         for (int rows = 0; rows < functionTable.getRowCount(); rows++) {
             try {
                 String fun = (String) functionTable.getValueAt(rows, 1);
                 if (!fun.trim().isEmpty()) {
-                    compound = compound.concat(fun.concat(";"));
+                    compound.append(fun).append(";");
                 }//end if
             }//end try
             catch (NullPointerException nol) {
 
             }
         }//end for
-        paper.getGrid().setFunction(compound);
+        paper.getGrid().setFunction(compound.toString());
     }//end method
 
     public void setChanged(boolean changed) {
@@ -371,9 +368,9 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
     private void initComponents() {
 
-        paper = new math.graph.alpha.gui.GraphPanel();
+        paper = new math.graph.gui.GraphPanel();
         panel = new javax.swing.JPanel();
-        jPanel2 = new javax.swing.JPanel();
+        jPanel2 = new javax.swing.JPanel(); 
         jLabel6 = new javax.swing.JLabel();
         majorTicksTextField = new javax.swing.JTextField();
         minorTicksTextField = new javax.swing.JTextField();
@@ -1424,8 +1421,10 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    applySettings();
-                    busy = false;
+                    SwingUtilities.invokeLater(() -> { 
+                        applySettings();
+                        busy = false;
+                    });
                 }
             }).start();
         } else {
@@ -1458,7 +1457,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
             try {
                 BufferedImage graphImage = ImageUtilities.createSwingObjectImage(paper);
                 ImageUtilities.saveImage(graphImage, f.getAbsolutePath());
-
+                 JOptionPane.showMessageDialog(saveChooser, "Graph saved!");
             } catch (NullPointerException exception) {
                 JOptionPane.showMessageDialog(saveChooser, "Error in saving image");
             }//end catch
@@ -1753,7 +1752,7 @@ public class FunctionTracer extends javax.swing.JFrame implements Runnable {
     private javax.swing.JTextField majorTicksTextField;
     private javax.swing.JTextField minorTicksTextField;
     private javax.swing.JPanel panel;
-    private math.graph.alpha.gui.GraphPanel paper;
+    private math.graph.gui.GraphPanel paper;
     private javax.swing.JButton plotAllButton;
     private javax.swing.JButton printButton;
     private javax.swing.JRadioButton radRadioButton;

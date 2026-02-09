@@ -1,4 +1,4 @@
-package math.graph.alpha;
+package math.graph.gui.adapter;
 
 import com.github.gbenroscience.math.graph.DrawingContext;
 import com.github.gbenroscience.math.graph.tools.FontStyle;
