@@ -1,0 +1,7 @@
+.idea/
+*.rtf
+build
+dist
+personal_info
+nbproject
+

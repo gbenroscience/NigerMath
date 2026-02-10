@@ -4,13 +4,22 @@
  */
 package gui.commandinterface;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Point;
+import java.awt.Dimension;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
+
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
+import java.util.List;
 import javax.swing.*;
 
 /**
@@ -117,7 +126,8 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
                 "Caret data: row = " + caret.getRow()
                 + "\ncolumn = " + caret.getColumn()
                 + "\nindex = " + caret.getIndex()
-                + "\navailable-sentences = " + sentences.size()
+                + "\navailable-sentences-count = " + sentences.size()
+                + "\nsentences = "+sentences
         );
     }
 
@@ -280,15 +290,8 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      * @return the Sentence object containing the character at that index.
      */
     public Sentence getSentenceAt(int absoluteIndex) {
-        int sz = sentences.size();
-        /*Sentence[] sen = new Sentence[1];
-        sentences.stream().forEach(s -> {
-          if(s.contains(absoluteIndex)){
-              sen[0]=s;
-          }
-        });
-        if(sen[0]!=null){return sen[0];}*/
         synchronized (lock) {
+            int sz = sentences.size();
             for (int i = 0; i < sz; i++) {
                 if (sentences.get(i).contains(absoluteIndex)) {
                     return sentences.get(i);
@@ -296,8 +299,9 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
             }//end for
 
         }
-        System.out.println("appendSentence>>> in getSentenceAt()");
-        return appendSentence();
+//        System.out.println("appendSentence>>> in getSentenceAt()");
+//        return appendSentence();
+        return null;
     }
 
     private void resetIndex() {
@@ -344,7 +348,7 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
      * @return the location of the character at index 'index' of the input
      * string 'text' on the screen .
      */
-    public Point indexToLocation(int index) {
+    public Point indexToLocation1(int index) {
         Sentence sentence = getSentenceAt(index);
         int[] row$Col = indexToRow$Column(index);
         row$Col = normalizePosition(row$Col[0], row$Col[1]);
@@ -380,10 +384,48 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
             }//end catch
         }//end calcWidth$Height
         Point p = new Point(xPos + width, yPos + height);
-
         return p;
-
     }//end method
+
+    public Point indexToLocation(int index) {
+        Sentence sentence = getSentenceAt(index);
+
+        if (sentence == null) {
+            // Fallback: use first sentence if available
+            if (!sentences.isEmpty()) {
+                sentence = sentences.get(0);
+            } else {
+                // Ensure at least one placeholder sentence exists
+                sentence = appendSentence();
+            }
+        }
+
+        int[] rowCol = indexToRow$Column(index);
+        rowCol = normalizePosition(rowCol[0], rowCol[1]);
+
+        int xPos = location.x + margin.width;
+        int yPos = location.y + margin.height;
+        int row = rowCol[0];
+        int col = rowCol[1];
+        int width = 0;
+        int height = 0;
+
+        try {
+            if (row > 0 && col >= 0) {
+                for (Sentence current : sentences) {
+                    if (current == sentence) {
+                        break;
+                    }
+                    height += (current.getTextHeight() + lineSpacing);
+                }
+            }
+            width = sentence.getTextWidth(getScanner().get(row).substring(0, col + 1));
+        } catch (IndexOutOfBoundsException boundsException) {
+            width = 0;
+        }
+
+        return new Point(xPos + width, yPos + height);
+    }
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -914,9 +956,9 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
         }
     }//end method
 
-    public void garbageCollectSentences() {
+    public void garbageCollectSentences1() {
         SwingUtilities.invokeLater(() -> {
-            java.util.List<Sentence> garbage = new ArrayList<>();
+            List<Sentence> garbage = new ArrayList<>();
             sentences.stream().forEach((s) -> {
                 if (s.getText().isEmpty() && caret.getCurrent() != s) {
                     garbage.add(s);
@@ -926,7 +968,23 @@ public class Document implements KeyListener, MouseListener, MouseMotionListener
             resetIndex();
             System.out.println("Garbage collector run. Deleted " + garbage.size() + " items");
         });
+    }
 
+    public void garbageCollectSentences() {
+        List<Sentence> garbage = new ArrayList<>();
+        for (Sentence s : sentences) {
+            if (s.getText().isEmpty() && caret.getCurrent() != s) {
+                garbage.add(s);
+            }
+        }
+        sentences.removeAll(garbage);
+
+        // Always keep at least one empty sentence
+        if (sentences.isEmpty()) {
+            appendSentence(); // create a fresh empty sentence
+        }
+
+        resetIndex();
     }
 
     @Override

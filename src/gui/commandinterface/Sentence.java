@@ -121,11 +121,13 @@ public class Sentence {
      * that maps onto the supplied absolute index.
      */
     public boolean contains(int absoluteIndex) {
-        if (text.isEmpty()) {
-            // Treat empty sentence as containing index 0 at its start
-            return absoluteIndex == getAbsoluteStartIndex();
-        }
         int absStartIndex = getAbsoluteStartIndex();
+
+        if (text.isEmpty()) {
+            // Treat empty sentence as containing only its start index
+            return absoluteIndex == absStartIndex;
+        }
+
         int absStopIndex = getAbsoluteStopIndex();
         return (absStartIndex <= absoluteIndex && absStopIndex >= absoluteIndex);
     }
@@ -148,34 +150,27 @@ public class Sentence {
      * this Sentence object.
      */
     public int getRelativeCharIndex(int absoluteIndex) {
+        int absStartIndex = getAbsoluteStartIndex();
+
         if (text.isEmpty()) {
-            // For empty sentence, only index 0 is valid
-            if (absoluteIndex == getAbsoluteStartIndex()) {
+            // For empty sentence, only index at start is valid
+            if (absoluteIndex == absStartIndex) {
                 return 0;
             }
-            throw new IndexOutOfBoundsException("Index " + absoluteIndex + " not valid in empty sentence");
+            throw new IndexOutOfBoundsException(
+                    "Index " + absoluteIndex + " not valid in empty sentence"
+            );
         }
 
-        int absStartIndex = getAbsoluteStartIndex();
         int absStopIndex = getAbsoluteStopIndex();
-
         if (absStartIndex <= absoluteIndex && absStopIndex >= absoluteIndex) {
             return absoluteIndex - absStartIndex;
-        }//end if
-        else if (absStartIndex > absoluteIndex) {
-            System.out.println("--------index: " + index + ", sentences-count: " + document.getSentences().size() + ", caret-row: " + document.getCaret().getRow() + ", caret-column: " + document.getCaret().getColumn());
-            throw new IndexOutOfBoundsException(" Please! Please!! The Index You "
-                    + "\nSpecified Does Not Belong In This Sentence! "
-                    + "\n Error: Startindex = " + absStartIndex + " and index =  " + absoluteIndex);
-        }//end else if
-        else if (absoluteIndex > absStopIndex) {
-            throw new IndexOutOfBoundsException(" Please!! Please!!! The Index Which You Have"
-                    + "\nSpecified Does Not Belong In This Sentence! "
-                    + "\n Error: lastIndex = " + absStopIndex + " and index = " + absoluteIndex);
-        }//end else if
+        }
 
-        throw new IndexOutOfBoundsException("Program Crash Imminent! Index System Failed! What Have You Done?");
-    }//end method
+        throw new IndexOutOfBoundsException(
+                "Index " + absoluteIndex + " not valid in this sentence"
+        );
+    }
 
     /**
      * return the index of the first letter of this object in the overall text
@@ -423,6 +418,12 @@ public class Sentence {
      *
      */
     public Sentence handleEnterKey() {
+        if (text.isEmpty()) {
+            // If sentence is empty, just insert a new sentence and return
+            Sentence s = document.appendSentence();
+            document.getCaret().setPosition(getAbsoluteStartIndex());
+            return s;
+        }
 // retrieve the index of the caret.
         int abs_Index = document.getCaret().getIndex();
         int rel_Index = getRelativeCharIndex(abs_Index);
@@ -461,30 +462,29 @@ public class Sentence {
      * @return the deleted character string.
      *
      */
-  public String handleBackSpaceKey() {
-    int abs_Index = document.getCaret().getIndex();
+    public String handleBackSpaceKey() {
+        int abs_Index = document.getCaret().getIndex();
 
-    if (abs_Index < 0 || text.isEmpty()) {
-        return "";
+        if (abs_Index < 0 || text.isEmpty()) {
+            return "";
+        }
+
+        int rel_Index = getRelativeCharIndex(abs_Index);
+        String part1 = text.substring(0, rel_Index);
+        String charRemoved = text.substring(rel_Index, rel_Index + 1);
+        String part2 = text.substring(rel_Index + 1);
+        setText(part1 + part2);
+
+        if (text.isEmpty()) {
+            document.getSentences().remove(this);
+            document.garbageCollectSentences();
+            document.getCaret().setPosition(Math.max(abs_Index - 1, 0));
+        } else {
+            document.getCaret().setPosition(Math.max(abs_Index - 1, 0));
+        }
+
+        return charRemoved;
     }
-
-    int rel_Index = getRelativeCharIndex(abs_Index);
-    String part1 = text.substring(0, rel_Index);
-    String charRemoved = text.substring(rel_Index, rel_Index + 1);
-    String part2 = text.substring(rel_Index + 1);
-    setText(part1 + part2);
-
-    if (text.isEmpty()) {
-        document.getSentences().remove(this);
-        document.garbageCollectSentences();
-        document.getCaret().setPosition(Math.max(abs_Index - 1, 0));
-    } else {
-        document.getCaret().setPosition(Math.max(abs_Index - 1, 0));
-    }
-
-    return charRemoved;
-}
-
 
     /**
      * Run this method whenever a range of characters is deleted simultaneously
@@ -512,28 +512,34 @@ public class Sentence {
             throw new IndexOutOfBoundsException();
         }//end else
     }//end method
+
     public String delete(int startIndex, int endIndex) {
-    if (contains(startIndex) && contains(endIndex)) {
-        int relStartIndex = getRelativeCharIndex(startIndex);
-        int relEndIndex = getRelativeCharIndex(endIndex);
-        String part1 = text.substring(0, relStartIndex);
-        String charStringRemoved = text.substring(relStartIndex, relEndIndex + 1);
-        String part2 = text.substring(relEndIndex + 1);
-        setText(part1 + part2);
+        if (contains(startIndex) && contains(endIndex)) {
+            int relStartIndex = getRelativeCharIndex(startIndex);
+            int relEndIndex = getRelativeCharIndex(endIndex);
+            String part1 = text.substring(0, relStartIndex);
+            String charStringRemoved = text.substring(relStartIndex, relEndIndex + 1);
+            String part2 = text.substring(relEndIndex + 1);
+            setText(part1 + part2);
 
-        // If sentence becomes empty, remove it from the document
-        if (text.isEmpty()) {
-            document.getSentences().remove(this);
-            document.garbageCollectSentences();
-            // Reset caret to a safe position
-            document.getCaret().setPosition(Math.max(startIndex - 1, 0));
+            // If sentence becomes empty, remove it from the document
+            if (text.isEmpty()) {
+                document.getSentences().remove(this);
+                document.garbageCollectSentences();
+                // Reset caret to a safe position
+                document.getCaret().setPosition(Math.max(startIndex - 1, 0));
+            }
+
+            return charStringRemoved;
+        } else {
+            throw new IndexOutOfBoundsException();
         }
-
-        return charStringRemoved;
-    } else {
-        throw new IndexOutOfBoundsException();
     }
-}
 
+    @Override
+    public String toString() {
+        String s = super.toString();
+        return "{super[" + s + "],id[" + id + "],text[" + text + "],index[" + index + "]}\n";
+    }
 
 }//end class Sentence
