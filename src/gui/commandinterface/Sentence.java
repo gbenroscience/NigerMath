@@ -417,7 +417,7 @@ public class Sentence {
      * this Sentence.
      *
      */
-    public Sentence handleEnterKey() {
+    public Sentence handleEnterKey1() {
         if (text.isEmpty()) {
             // If sentence is empty, just insert a new sentence and return
             Sentence s = document.appendSentence();
@@ -454,6 +454,30 @@ public class Sentence {
             return sentence;
         }
     }//end method
+
+    public void handleEnterKey() {
+    int absIndex = document.getCaret().getIndex();
+    int relIndex = getRelativeCharIndex(absIndex);
+
+    // Split text at caret
+    String part1 = text.substring(0, relIndex);
+    String part2 = text.substring(relIndex);
+
+    // Current sentence keeps part1
+    setText(part1);
+
+    // Create new sentence with part2
+    Sentence newSentence = document.appendSentence();
+    newSentence.setText(part2);
+
+    // Insert a new row into the scanner
+    ArrayList<String> scan = document.getScanner();
+    int row = document.getCaret().getRow();
+    scan.add(row + 1, part2); // push lower lines down
+
+    // Move caret to start of new sentence
+    document.getCaret().setPosition(row + 1, 0);
+}
 
     /**
      * Run this method whenever the backSpace key is pressed inside this
